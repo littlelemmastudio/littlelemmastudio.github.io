@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Little Lemma</title>
+<meta name="description" content="Little Lemma — small, clever puzzle games.">
+<link rel="icon" href="eksi2048/icon.png">
+<style>
+  :root { --bg: #fbf3e6; --panel: #ffffff; --ink: #1f2a44; --muted: #6f6a62; --line: #ecdcc4; --accent: #3878da; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #17191f; --panel: #20232b; --ink: #eef1f5; --muted: #a3a9b6; --line: #2e323c; --accent: #7fb5f8; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 17px/1.6 ui-rounded, "SF Pro Rounded", -apple-system, system-ui, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 680px; margin: 0 auto; padding: 56px 16px 64px; }
+  .mark { font-size: 15px; font-weight: 800; color: var(--muted); letter-spacing: .3px; }
+  h1 { margin: 4px 0 6px; font-size: 44px; line-height: 1.05; font-weight: 900; letter-spacing: -1.5px; }
+  .tag { font-size: 19px; color: var(--muted); font-weight: 600; margin: 0 0 8px; }
+  .lemma { font-style: italic; color: var(--muted); font-size: 15px; margin: 0 0 28px; }
+  nav { display: flex; gap: 6px; margin: 0 0 28px; flex-wrap: wrap; }
+  nav button { border: 0; border-radius: 999px; padding: 7px 13px; background: var(--panel); color: var(--ink);
+    font: inherit; font-size: 14px; font-weight: 800; cursor: pointer; box-shadow: inset 0 0 0 2px var(--line); }
+  nav button[aria-pressed="true"] { background: var(--accent); color: #fff; box-shadow: none; }
+  @media (prefers-color-scheme: dark) { nav button[aria-pressed="true"] { color: #17191f; } }
+  h2 { font-size: 15px; font-weight: 900; color: var(--muted); letter-spacing: .4px; text-transform: uppercase; margin: 0 0 12px; }
+  .game { display: flex; gap: 16px; align-items: center; background: var(--panel); border-radius: 22px; padding: 16px;
+    text-decoration: none; color: inherit; box-shadow: 0 1px 0 rgba(31,42,68,.06); }
+  .game img { width: 84px; height: 84px; border-radius: 19px; flex: none; box-shadow: 0 2px 6px rgba(0,0,0,.12); }
+  .game b { font-size: 21px; font-weight: 900; display: block; }
+  .game span { color: var(--muted); font-weight: 600; font-size: 15px; }
+  .game .soon { display: inline-block; margin-top: 4px; font-size: 12px; font-weight: 800; color: var(--accent); }
+  footer { margin-top: 40px; color: var(--muted); font-size: 14px; }
+  footer a { color: var(--accent); font-weight: 700; }
+  [data-lang] { display: none; }
+  [data-lang].on { display: revert; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Little Lemma</h1>
+  <p class="tag">
+    <span data-lang="en">Small, clever puzzle games.</span>
+    <span data-lang="tr">Küçük, zekice bulmaca oyunları.</span>
+    <span data-lang="fr">De petits jeux de réflexion malins.</span>
+  </p>
+  <p class="lemma">
+    <span data-lang="en">lemma (n.) — a small result that makes a bigger proof possible.</span>
+    <span data-lang="tr">lemma (i.) — daha büyük bir ispatı mümkün kılan küçük sonuç.</span>
+    <span data-lang="fr">lemme (n.) — un petit résultat qui rend possible une plus grande démonstration.</span>
+  </p>
+
+  <nav aria-label="Language">
+    <button data-set="en">English</button>
+    <button data-set="tr">Türkçe</button>
+    <button data-set="fr">Français</button>
+  </nav>
+
+  <h2>
+    <span data-lang="en">Games</span><span data-lang="tr">Oyunlar</span><span data-lang="fr">Jeux</span>
+  </h2>
+  <a class="game" href="eksi2048/">
+    <img src="eksi2048/icon.png" alt="">
+    <div>
+      <b>−2048</b>
+      <span data-lang="en">2048 with negative tiles. Crash each blue tile into its match.</span>
+      <span data-lang="tr">Negatif taşlı 2048. Her mavi taşı eşiyle çarpıştır.</span>
+      <span data-lang="fr">2048 avec des tuiles négatives. Percutez chaque tuile bleue avec son égale.</span>
+      <br><span class="soon">
+        <span data-lang="en">Coming soon to the App Store</span><span data-lang="tr">Yakında App Store'da</span><span data-lang="fr">Bientôt sur l’App Store</span>
+      </span>
+    </div>
+  </a>
+
+  <footer>
+    <a href="mailto:littlelemmastudio@gmail.com">littlelemmastudio@gmail.com</a><br>
+    © 2026 Little Lemma
+  </footer>
+</main>
+<script>
+  const LANGS = ['en', 'tr', 'fr'];
+  function show(l) {
+    if (!LANGS.includes(l)) l = 'en';
+    document.documentElement.lang = l;
+    document.querySelectorAll('[data-lang]').forEach(a => a.classList.toggle('on', a.dataset.lang === l));
+    document.querySelectorAll('nav button').forEach(b => b.setAttribute('aria-pressed', b.dataset.set === l));
+    document.querySelectorAll('a.game').forEach(a => a.setAttribute('href', 'eksi2048/#' + l));
+  }
+  document.querySelectorAll('nav button').forEach(b => b.addEventListener('click', () => {
+    show(b.dataset.set);
+    history.replaceState(null, '', '#' + b.dataset.set);
+  }));
+  const fromHash = location.hash.slice(1);
+  const fromBrowser = (navigator.languages || [navigator.language || 'en']).map(x => String(x).slice(0, 2).toLowerCase()).find(x => LANGS.includes(x));
+  show(LANGS.includes(fromHash) ? fromHash : fromBrowser || 'en');
+</script>
+</body>
+</html>

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>−2048 · Support</title>
+<meta name="description" content="Help and contact for the −2048 puzzle game.">
+<style>
+  :root {
+    --bg: #fbf3e6; --panel: #ffffff; --ink: #1f2a44; --muted: #6f6a62; --line: #ecdcc4;
+    --pos: #ffc9a3; --pos-ink: #b8582a; --neg: #9cc9f5; --neg-ink: #1f4f8f; --accent: #3878da;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #17191f; --panel: #20232b; --ink: #eef1f5; --muted: #a3a9b6; --line: #2e323c; --accent: #7fb5f8; }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 17px/1.6 ui-rounded, "SF Pro Rounded", -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 680px; margin: 0 auto; padding: 32px 16px 64px; }
+  header { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; }
+  .logo { width: 56px; height: 56px; flex: none; border-radius: 14px; background: var(--line);
+    display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 5px; }
+  .logo span { border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 12px; }
+  .logo .e { background: #f6ead7; } .logo .p { background: var(--pos); color: var(--pos-ink); } .logo .n { background: var(--neg); color: var(--neg-ink); }
+  h1 { margin: 0; font-size: 28px; line-height: 1.15; font-weight: 900; letter-spacing: -.5px; }
+  .sub { color: var(--muted); font-weight: 600; font-size: 14px; }
+  nav { display: flex; gap: 6px; margin: 20px 0 24px; flex-wrap: wrap; }
+  nav button {
+    border: 0; border-radius: 999px; padding: 8px 14px; background: var(--panel); color: var(--ink);
+    font: inherit; font-size: 14px; font-weight: 800; cursor: pointer; box-shadow: inset 0 0 0 2px var(--line);
+  }
+  nav button[aria-pressed="true"] { background: var(--accent); color: #fff; box-shadow: none; }
+  .card { background: var(--panel); border-radius: 20px; padding: 8px 22px 18px; box-shadow: 0 1px 0 rgba(31,42,68,.06); }
+  h2 { font-size: 19px; font-weight: 900; margin: 22px 0 6px; }
+  p, li { margin: 6px 0; }
+  ul { padding-left: 22px; margin: 6px 0; }
+  .summary { background: var(--neg); color: var(--neg-ink); border-radius: 14px; padding: 12px 16px; font-weight: 700; margin-top: 16px; }
+  a { color: var(--accent); font-weight: 700; }
+  footer { color: var(--muted); font-size: 13px; text-align: center; margin-top: 24px; }
+  [data-lang] { display: none; }
+  [data-lang].on { display: block; }
+  details { border-top: 1px solid var(--line); padding: 10px 0; }
+  details:first-of-type { border-top: 0; }
+  summary { font-weight: 800; cursor: pointer; list-style: none; display: flex; justify-content: space-between; gap: 10px; }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: '+'; color: var(--accent); font-weight: 900; }
+  details[open] summary::after { content: '−'; }
+  details p { margin: 8px 0 2px; }
+  @media (prefers-color-scheme: dark) { .contact { color: #17191f; } }
+  .contact { display: inline-block; margin: 6px 0 4px; padding: 10px 16px; border-radius: 12px; background: var(--accent); color: #fff; text-decoration: none; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="logo" aria-hidden="true"><span class="e"></span><span class="p">2</span><span class="n">−2</span><span class="e"></span></div>
+    <div>
+      <h1 id="title">Support</h1>
+      <div class="sub">−2048 · Little Lemma</div>
+    </div>
+  </header>
+
+  <nav aria-label="Language">
+    <button data-set="en">English</button>
+    <button data-set="tr">Türkçe</button>
+    <button data-set="fr">Français</button>
+  </nav>
+
+  <article class="card" data-lang="en" lang="en">
+    <h2>Contact</h2>
+    <p>Found a bug, have an idea, or stuck on something? Write to us — we usually reply within a few days. For bugs, please include your iPhone model, iOS version and the level number.</p>
+    <a class="contact" href="mailto:littlelemmastudio@gmail.com?subject=%E2%88%922048">littlelemmastudio@gmail.com</a>
+    <h2>Frequently asked questions</h2>
+    <details><summary>How do I play?</summary><p>Swipe to slide all tiles. Equal positive numbers merge and double. Blue tiles are negative: build the same number and crash it into the blue tile, and both disappear. Clear every blue tile to finish the level. In the app: Settings → How to play.</p></details>
+    <details><summary>I ran out of Undo or Swap.</summary><p>Every boss level (10, 20, 30 …) gives +3 Undo and +3 Swap the first time you beat it. You can always restart a level for free.</p></details>
+    <details><summary>How do stars work?</summary><p>Finishing a level gives ★. Finishing in fewer moves gives ★★ or ★★★; the move count needed for the next star is shown above the board.</p></details>
+    <details><summary>I got a new iPhone or reinstalled the app. Where is my progress?</summary><p>Progress is stored only on your device, never on our servers. If you restore your new iPhone from an iCloud or computer backup, your progress comes back with it. Deleting the app without a backup deletes your progress.</p></details>
+    <details><summary>How do I change the language or switch to dark mode?</summary><p>Settings → Language, and Settings → Appearance (System / Light / Dark).</p></details>
+    <details><summary>How do I start over?</summary><p>Settings → Reset progress. This clears levels, stars and scores; your settings stay.</p></details>
+    <h2>Privacy</h2>
+    <p><a href="../privacy/#en">Read the privacy policy →</a></p>
+  </article>
+  <article class="card" data-lang="tr" lang="tr">
+    <h2>İletişim</h2>
+    <p>Bir hata mı buldun, bir fikrin mi var ya da bir yerde mi takıldın? Bize yaz, genellikle birkaç gün içinde cevap veriyoruz. Hata bildirirken iPhone modelini, iOS sürümünü ve seviye numarasını da yazarsan çok yardımcı olur.</p>
+    <a class="contact" href="mailto:littlelemmastudio@gmail.com?subject=%E2%88%922048">littlelemmastudio@gmail.com</a>
+    <h2>Sık sorulan sorular</h2>
+    <details><summary>Nasıl oynanır?</summary><p>Kaydırınca bütün taşlar kayar. Aynı pozitif sayılar birleşip ikiye katlanır. Mavi taşlar negatiftir: aynı sayıyı yapıp mavi taşa çarptırınca ikisi de yok olur. Bütün mavi taşları temizleyince seviye biter. Uygulamada: Ayarlar → Nasıl oynanır?</p></details>
+    <details><summary>Geri al ya da Değiştir hakkım bitti.</summary><p>Her boss seviyesi (10, 20, 30 …) ilk geçişte +3 Geri al ve +3 Değiştir hakkı verir. Bir seviyeyi her zaman ücretsiz olarak baştan başlatabilirsin.</p></details>
+    <details><summary>Yıldızlar nasıl çalışıyor?</summary><p>Seviyeyi bitirmek ★ verir. Daha az hamleyle bitirirsen ★★ ya da ★★★ alırsın; bir sonraki yıldız için gereken hamle sayısı tahtanın üstünde yazar.</p></details>
+    <details><summary>Yeni telefon aldım ya da uygulamayı yeniden yükledim. İlerlemem nerede?</summary><p>İlerleme yalnızca cihazında saklanır, sunucularımızda değil. Yeni iPhone’unu iCloud ya da bilgisayar yedeğinden geri yüklersen ilerlemen de geri gelir. Yedek olmadan uygulamayı silmek ilerlemeyi de siler.</p></details>
+    <details><summary>Dili nasıl değiştiririm ya da koyu moda nasıl geçerim?</summary><p>Ayarlar → Dil ve Ayarlar → Görünüm (Sistem / Açık / Koyu).</p></details>
+    <details><summary>Baştan nasıl başlarım?</summary><p>Ayarlar → İlerlemeyi sıfırla. Seviyeler, yıldızlar ve skorlar silinir; ayarların kalır.</p></details>
+    <h2>Gizlilik</h2>
+    <p><a href="../privacy/#tr">Gizlilik politikasını oku →</a></p>
+  </article>
+  <article class="card" data-lang="fr" lang="fr">
+    <h2>Contact</h2>
+    <p>Un bug, une idée, ou bloqué quelque part ? Écrivez-nous, nous répondons généralement en quelques jours. Pour un bug, indiquez votre modèle d’iPhone, la version d’iOS et le numéro du niveau.</p>
+    <a class="contact" href="mailto:littlelemmastudio@gmail.com?subject=%E2%88%922048">littlelemmastudio@gmail.com</a>
+    <h2>Questions fréquentes</h2>
+    <details><summary>Comment jouer ?</summary><p>Glissez pour déplacer toutes les tuiles. Deux nombres positifs identiques fusionnent et doublent. Les tuiles bleues sont négatives : formez le même nombre et faites-le percuter la tuile bleue, les deux disparaissent. Videz toutes les tuiles bleues pour terminer le niveau. Dans l’app : Réglages → Comment jouer.</p></details>
+    <details><summary>Je n’ai plus d’Annulations ni d’Échanges.</summary><p>Chaque niveau boss (10, 20, 30 …) donne +3 Annulations et +3 Échanges la première fois que vous le battez. Vous pouvez toujours recommencer un niveau gratuitement.</p></details>
+    <details><summary>Comment fonctionnent les étoiles ?</summary><p>Terminer un niveau donne ★. Le terminer en moins de coups donne ★★ ou ★★★ ; le nombre de coups pour l’étoile suivante est affiché au-dessus du plateau.</p></details>
+    <details><summary>J’ai un nouvel iPhone ou j’ai réinstallé l’app. Où est ma progression ?</summary><p>La progression est stockée uniquement sur votre appareil, jamais sur nos serveurs. Si vous restaurez votre nouvel iPhone depuis une sauvegarde iCloud ou ordinateur, votre progression revient avec. Supprimer l’app sans sauvegarde efface la progression.</p></details>
+    <details><summary>Comment changer la langue ou passer en mode sombre ?</summary><p>Réglages → Langue, et Réglages → Apparence (Système / Clair / Sombre).</p></details>
+    <details><summary>Comment recommencer de zéro ?</summary><p>Réglages → Réinitialiser la progression. Les niveaux, étoiles et scores sont effacés ; vos réglages sont conservés.</p></details>
+    <h2>Confidentialité</h2>
+    <p><a href="../privacy/#fr">Lire la politique de confidentialité →</a></p>
+  </article>
+
+  <footer>© 2026 Little Lemma</footer>
+</main>
+<script>
+  const TEXT = { en: 'Support', tr: 'Destek', fr: 'Assistance' };
+  function show(l) {
+    if (!TEXT[l]) l = 'en';
+    document.documentElement.lang = l;
+    document.querySelectorAll('[data-lang]').forEach(a => a.classList.toggle('on', a.dataset.lang === l));
+    document.querySelectorAll('nav button').forEach(b => b.setAttribute('aria-pressed', b.dataset.set === l));
+    document.getElementById('title').textContent = TEXT[l];
+    document.title = '−2048 · ' + TEXT[l];
+  }
+  document.querySelectorAll('nav button').forEach(b => b.addEventListener('click', () => {
+    show(b.dataset.set);
+    history.replaceState(null, '', '#' + b.dataset.set);
+  }));
+  // #tr / #fr ile açılırsa o dil; yoksa tarayıcı dili; yoksa İngilizce
+  const fromHash = location.hash.slice(1);
+  const fromBrowser = (navigator.languages || [navigator.language || 'en']).map(x => String(x).slice(0, 2).toLowerCase()).find(x => TEXT[x]);
+  show(TEXT[fromHash] ? fromHash : fromBrowser || 'en');
+</script>
+</body>
+</html>
