@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Q.E.D. · Little Lemma</title>
+<meta name="description" content="Q.E.D.: a wall-and-path strategy duel against history’s greatest mathematicians.">
+<link rel="icon" href="icon.png">
+<style>
+  :root { --bg: #fbf3e6; --panel: #ffffff; --ink: #1f2a44; --muted: #6f6a62; --line: #ecdcc4; --accent: #3878da; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #17191f; --panel: #20232b; --ink: #eef1f5; --muted: #a3a9b6; --line: #2e323c; --accent: #7fb5f8; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 17px/1.6 ui-rounded, "SF Pro Rounded", -apple-system, system-ui, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 680px; margin: 0 auto; padding: 40px 16px 64px; }
+  .back { color: var(--muted); font-weight: 700; font-size: 14px; text-decoration: none; }
+  header { display: flex; gap: 18px; align-items: center; margin: 18px 0 20px; }
+  header img { width: 104px; height: 104px; border-radius: 23px; box-shadow: 0 2px 8px rgba(0,0,0,.14); }
+  h1 { margin: 0; font-size: 40px; line-height: 1; font-weight: 900; letter-spacing: -1.2px; }
+  .by { color: var(--muted); font-weight: 700; font-size: 15px; margin-top: 4px; }
+  nav { display: flex; gap: 6px; margin: 0 0 20px; flex-wrap: wrap; }
+  nav button { border: 0; border-radius: 999px; padding: 7px 13px; background: var(--panel); color: var(--ink);
+    font: inherit; font-size: 14px; font-weight: 800; cursor: pointer; box-shadow: inset 0 0 0 2px var(--line); }
+  nav button[aria-pressed="true"] { background: var(--accent); color: #fff; box-shadow: none; }
+  @media (prefers-color-scheme: dark) { nav button[aria-pressed="true"] { color: #17191f; } }
+  .card { background: var(--panel); border-radius: 20px; padding: 6px 22px 16px; }
+  ul { padding-left: 22px; } li { margin: 4px 0; }
+  .soon { display: inline-block; margin: 14px 0 4px; padding: 9px 15px; border-radius: 12px; background: var(--line); font-weight: 800; }
+  .links { display: flex; gap: 18px; margin-top: 18px; flex-wrap: wrap; }
+  .links a { color: var(--accent); font-weight: 800; }
+  [data-lang] { display: none; }
+  [data-lang].on { display: block; }
+</style>
+</head>
+<body>
+<main>
+  <a class="back" href="../">← Little Lemma</a>
+  <header>
+    <img src="icon.png" alt="Q.E.D. icon">
+    <div>
+      <h1>Q.E.D.</h1>
+      <div class="by">Little Lemma</div>
+    </div>
+  </header>
+
+  <nav aria-label="Language">
+    <button data-set="en">English</button>
+    <button data-set="tr">Türkçe</button>
+    <button data-set="fr">Français</button>
+  </nav>
+
+  <section class="card" data-lang="en" lang="en">
+    <p>A wall-and-path strategy duel against history's greatest mathematicians. Be the first to reach the far side of the board; each turn, step one square or place a wall. But no wall may ever block a path completely.</p>
+    <ul>
+      <li>24 mathematicians across six eras, from Pythagoras to Euler, each with their own style</li>
+      <li>A theorem for every win, with a step-by-step visual proof</li>
+      <li>Daily puzzle, a 150-puzzle practice book and an analysis board</li>
+      <li>Six special boards and a post-game analysis by Gauss</li>
+      <li>No ads, no accounts, no data collected</li>
+      <li>English, Türkçe, Français · light and dark mode</li>
+    </ul>
+    <span class="soon">Coming soon to the App Store · iPhone</span>
+    <div class="links"><a href="support/#en">Support</a><a href="privacy/#en">Privacy Policy</a></div>
+  </section>
+
+  <section class="card" data-lang="tr" lang="tr">
+    <p>Tarihin en büyük matematikçilerine karşı bir duvar ve yol strateji düellosu. Tahtanın karşı kenarına ilk sen ulaş; her turda bir kare yürü ya da bir duvar koy. Ama hiçbir duvar bir yolu tamamen kapatamaz.</p>
+    <ul>
+      <li>Pisagor'dan Euler'e altı çağda, her birinin kendi tarzı olan 24 matematikçi</li>
+      <li>Her zafere bir teorem ve adım adım görsel ispatı</li>
+      <li>Günün problemi, 150 problemlik alıştırma kitabı ve analiz tahtası</li>
+      <li>Altı özel tahta ve maç sonunda Gauss'un analizi</li>
+      <li>Reklam yok, hesap yok, veri toplanmıyor</li>
+      <li>Türkçe, English, Français · açık ve koyu mod</li>
+    </ul>
+    <span class="soon">Yakında App Store'da · iPhone</span>
+    <div class="links"><a href="support/#tr">Destek</a><a href="privacy/#tr">Gizlilik Politikası</a></div>
+  </section>
+
+  <section class="card" data-lang="fr" lang="fr">
+    <p>Un duel de stratégie de murs et de chemins contre les plus grands mathématiciens de l’histoire. Soyez le premier à atteindre l’autre côté du plateau ; à chaque tour, avancez d’une case ou posez un mur. Mais aucun mur ne peut bloquer complètement un chemin.</p>
+    <ul>
+      <li>24 mathématiciens sur six époques, de Pythagore à Euler, chacun avec son style</li>
+      <li>Un théorème pour chaque victoire, avec sa démonstration visuelle pas à pas</li>
+      <li>Problème du jour, cahier de 150 exercices et plateau d’analyse</li>
+      <li>Six plateaux spéciaux et une analyse de partie par Gauss</li>
+      <li>Sans publicité, sans compte, aucune donnée collectée</li>
+      <li>Français, English, Türkçe · mode clair et sombre</li>
+    </ul>
+    <span class="soon">Bientôt sur l’App Store · iPhone</span>
+    <div class="links"><a href="support/#fr">Assistance</a><a href="privacy/#fr">Confidentialité</a></div>
+  </section>
+</main>
+<script>
+  const LANGS = ['en', 'tr', 'fr'];
+  function show(l) {
+    if (!LANGS.includes(l)) l = 'en';
+    document.documentElement.lang = l;
+    document.querySelectorAll('[data-lang]').forEach(a => a.classList.toggle('on', a.dataset.lang === l));
+    document.querySelectorAll('nav button').forEach(b => b.setAttribute('aria-pressed', b.dataset.set === l));
+  }
+  document.querySelectorAll('nav button').forEach(b => b.addEventListener('click', () => {
+    show(b.dataset.set);
+    history.replaceState(null, '', '#' + b.dataset.set);
+  }));
+  const fromHash = location.hash.slice(1);
+  const fromBrowser = (navigator.languages || [navigator.language || 'en']).map(x => String(x).slice(0, 2).toLowerCase()).find(x => LANGS.includes(x));
+  show(LANGS.includes(fromHash) ? fromHash : fromBrowser || 'en');
+</script>
+</body>
+</html>
