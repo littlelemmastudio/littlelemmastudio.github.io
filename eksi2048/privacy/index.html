@@ -70,7 +70,6 @@
       <li><b>Google AdMob (ads).</b> Shows ads and measures them. It may use your device's advertising identifier (on iPhone only if you allow tracking; on Android the advertising ID), your IP address and the approximate location derived from it, device information (model, system version, language) and how you interact with ads. This is used to show and measure ads, to limit how often you see the same ad, and to prevent fraud.</li>
       <li><b>Google Analytics for Firebase.</b> Tells us how the game is played so we can improve it: for example which levels are started, won or lost, and whether an ad was watched. It uses a random app-instance identifier, device model, system version, country and language. It does not include your name or contacts.</li>
       <li><b>Firebase Crashlytics.</b> If the app crashes, it sends a crash report (technical details, device model, system version) so we can fix the bug.</li>
-      <li><b>Firebase Remote Config.</b> Lets us adjust settings such as how often ads appear without releasing a new version.</li>
     </ul>
     <p>Google processes this data under its own policies: <a href="https://policies.google.com/privacy">Google Privacy Policy</a> and <a href="https://policies.google.com/technologies/partner-sites">How Google uses information from apps that use its services</a>.</p>
     <h2>Your choices</h2>
@@ -84,6 +83,7 @@
     <ul>
       <li>level progress, stars and best scores</li>
       <li>the current Classic game</li>
+      <li>Daily Puzzle results and your streak</li>
       <li>remaining Undo and Swap uses, and when you last saw an ad</li>
       <li>settings: sound, vibration, appearance and language</li>
     </ul>
@@ -106,7 +106,6 @@
       <li><b>Google AdMob (reklam).</b> Reklamları gösterir ve ölçer. Cihazının reklam kimliğini (iPhone'da yalnızca izleme izni verirsen; Android'de reklam kimliği), IP adresini ve ondan çıkarılan yaklaşık konumu, cihaz bilgilerini (model, sistem sürümü, dil) ve reklamlarla etkileşimini kullanabilir. Amacı reklamları göstermek ve ölçmek, aynı reklamı çok sık göstermemek ve dolandırıcılığı önlemektir.</li>
       <li><b>Google Analytics for Firebase.</b> Oyunu geliştirebilmemiz için nasıl oynandığını gösterir: örneğin hangi seviyelerin başlatıldığı, kazanıldığı ya da kaybedildiği ve reklam izlenip izlenmediği. Rastgele bir uygulama kimliği, cihaz modeli, sistem sürümü, ülke ve dil kullanır. Adını ya da rehberini içermez.</li>
       <li><b>Firebase Crashlytics.</b> Uygulama çökerse, hatayı düzeltebilmemiz için bir çökme raporu (teknik ayrıntılar, cihaz modeli, sistem sürümü) gönderir.</li>
-      <li><b>Firebase Remote Config.</b> Reklam sıklığı gibi ayarları yeni sürüm yayınlamadan değiştirmemizi sağlar.</li>
     </ul>
     <p>Google bu verileri kendi politikalarına göre işler: <a href="https://policies.google.com/privacy?hl=tr">Google Gizlilik Politikası</a> ve <a href="https://policies.google.com/technologies/partner-sites?hl=tr">Google'ın, hizmetlerini kullanan uygulamalardan gelen bilgileri nasıl kullandığı</a>.</p>
     <h2>Senin seçimlerin</h2>
@@ -120,6 +119,7 @@
     <ul>
       <li>seviye ilerlemesi, yıldızlar ve en iyi skorlar</li>
       <li>devam eden Klasik oyun</li>
+      <li>Günlük bulmaca sonuçları ve serin</li>
       <li>kalan Geri al ve Değiştir hakları, en son ne zaman reklam gördüğün</li>
       <li>ayarlar: ses, titreşim, görünüm ve dil</li>
     </ul>
@@ -142,7 +142,6 @@
       <li><b>Google AdMob (publicité).</b> Affiche et mesure les publicités. Il peut utiliser l’identifiant publicitaire de votre appareil (sur iPhone, uniquement si vous autorisez le suivi ; sur Android, l’identifiant publicitaire), votre adresse IP et la localisation approximative qui en découle, des informations sur l’appareil (modèle, version du système, langue) et vos interactions avec les publicités. Objectifs : afficher et mesurer les publicités, éviter de vous montrer trop souvent la même et prévenir la fraude.</li>
       <li><b>Google Analytics pour Firebase.</b> Nous montre comment le jeu est utilisé pour l’améliorer : par exemple quels niveaux sont commencés, gagnés ou perdus, et si une publicité a été regardée. Il utilise un identifiant d’instance aléatoire, le modèle de l’appareil, la version du système, le pays et la langue. Il ne contient ni votre nom ni vos contacts.</li>
       <li><b>Firebase Crashlytics.</b> Si l’application plante, il envoie un rapport (détails techniques, modèle de l’appareil, version du système) pour que nous puissions corriger le bug.</li>
-      <li><b>Firebase Remote Config.</b> Nous permet d’ajuster des réglages, comme la fréquence des publicités, sans publier de nouvelle version.</li>
     </ul>
     <p>Google traite ces données selon ses propres règles : <a href="https://policies.google.com/privacy?hl=fr">Règles de confidentialité de Google</a> et <a href="https://policies.google.com/technologies/partner-sites?hl=fr">Comment Google utilise les informations des applications qui utilisent ses services</a>.</p>
     <h2>Vos choix</h2>
@@ -156,6 +155,7 @@
     <ul>
       <li>la progression, les étoiles et les meilleurs scores</li>
       <li>la partie Classique en cours</li>
+      <li>les résultats du Défi du jour et votre série</li>
       <li>les Annulations et Échanges restants, et la date de la dernière publicité vue</li>
       <li>les réglages : son, vibrations, apparence et langue</li>
     </ul>
@@ -168,13 +168,13 @@
     <p>Questions sur cette politique : <a href="mailto:littlelemmastudio@gmail.com">littlelemmastudio@gmail.com</a></p>
   </article>
 
-  <footer id="updated">Last updated: November 13, 2026</footer>
+  <footer id="updated">Last updated: November 19, 2026</footer>
 </main>
 <script>
   const TEXT = {
-    en: { title: 'Privacy Policy', updated: 'Last updated: November 13, 2026' },
-    tr: { title: 'Gizlilik Politikası', updated: 'Son güncelleme: 13 Kasım 2026' },
-    fr: { title: 'Politique de confidentialité', updated: 'Dernière mise à jour : 13 novembre 2026' },
+    en: { title: 'Privacy Policy', updated: 'Last updated: November 19, 2026' },
+    tr: { title: 'Gizlilik Politikası', updated: 'Son güncelleme: 19 Kasım 2026' },
+    fr: { title: 'Politique de confidentialité', updated: 'Dernière mise à jour : 19 novembre 2026' },
   };
   function show(l) {
     if (!TEXT[l]) l = 'en';
