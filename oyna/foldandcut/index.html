@@ -1,0 +1,1503 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" id="themeColor" content="#f3eee2">
+<title>Tek Kesim</title>
+<style>
+/* ================= YAZI TİPİ: Fraunces (gömülü, Köşeler'le aynı) ================= */
+@font-face { font-family: Fraunces; font-style: normal; font-weight: 400 800; font-display: swap; src: url(fonts/fraunces-latin.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: Fraunces; font-style: normal; font-weight: 400 800; font-display: swap; src: url(fonts/fraunces-latinext.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1E00-1E9F, U+A720-A7FF; }
+@font-face { font-family: Fraunces; font-style: italic; font-weight: 400 800; font-display: swap; src: url(fonts/fraunces-italic-latin.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: Fraunces; font-style: italic; font-weight: 400 800; font-display: swap; src: url(fonts/fraunces-italic-latinext.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1E00-1E9F, U+A720-A7FF; }
+
+/* ================= TEMA =================
+   Kağıt ve mürekkep (Köşeler ailesi). Tek vurgu rengi koyu kırmızı: kesik ve çıkan parça.
+   Tahtadaki renkler de buradan okunur (canvas): tema değişince yalnız bu değişkenler değişir.
+   Gece (Köşeler'deki gibi): lacivert zemin, kâğıt bir ton açık lacivert, mürekkep krem-altın, vurgu açık kiremit. */
+:root {
+  --bg: #f3eee2; --paper: #fdfaf2; --ink: #1b1a17; --muted: #6d675a; --line: rgba(27, 26, 23, .16); --grid: rgba(27, 26, 23, .42);
+  --accent: #c23a1d;
+  --btn: #1b1a17; --btn-ink: #f3eee2;
+  --rule: 1.5px;
+  --overlay: rgba(27, 26, 23, .38);
+  --serif: Fraunces, Georgia, "Times New Roman", serif;
+  --shadow: rgba(40, 30, 10, .16); --shadow-hit: rgba(80, 20, 5, .35); --on-accent: #ffffff;
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  --bg: #0b111f; --paper: #1a2440; --ink: #ead9b4; --muted: #a88f5c; --line: rgba(216, 181, 106, .2); --grid: rgba(216, 181, 106, .36);
+  --accent: #e8735a;
+  --btn: #d8b56a; --btn-ink: #0b111f;
+  --overlay: rgba(0, 0, 0, .6);
+  --shadow: rgba(0, 0, 0, .55); --shadow-hit: rgba(232, 115, 90, .4); --on-accent: #0b111f;
+  color-scheme: dark;
+}
+:root[data-theme="dark"] body { background: radial-gradient(120% 80% at 50% 0%, #18233b 0%, #0b111f 55%, #070b14 100%) fixed; }
+:root[data-theme="dark"] body::before { opacity: 0; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font-family: var(--serif);
+  -webkit-user-select: none; user-select: none; overscroll-behavior: none; -webkit-font-smoothing: antialiased; -webkit-touch-callout: none; }
+body::before { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: .5; mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' seed='3'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .45 0 0 0 0 .35 0 0 0 .12 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; padding: 0; }
+
+.screen { position: fixed; inset: 0; display: none; flex-direction: column; align-items: center; z-index: 1;
+  padding: calc(env(safe-area-inset-top) + 8px) 16px calc(env(safe-area-inset-bottom) + 10px); overflow-y: auto; }
+.screen.active { display: flex; }
+#game { --bw: min(100%, 440px); overflow: hidden; }
+
+/* ================= BÖLÜM HARİTASI ve SEVİYE IZGARASI ================= */
+.wrap { width: 100%; max-width: 520px; display: flex; flex-direction: column; }
+.head { width: 100%; display: flex; align-items: center; gap: 6px; border-bottom: var(--rule) solid var(--ink); padding-bottom: 6px; min-height: 50px; }
+.head h2 { margin: 0; flex: 1; font-size: 26px; font-weight: 700; letter-spacing: -.5px; }
+.head .tot { font-size: 16px; font-style: italic; color: var(--muted); white-space: nowrap; }
+.head .tot b { color: var(--ink); font-style: normal; }
+.lede { color: var(--muted); font-style: italic; font-size: 15px; margin: 10px 2px 0; }
+
+/* harita: bölümler dikey kesikli bir yol üzerinde; amblem = bölümün tipik hedef şekli (bölümlerin adı yok) */
+.chapters { position: relative; margin-top: 10px; padding-bottom: 10px; }
+.chapters::before { content: ""; position: absolute; left: 38px; top: 46px; bottom: 56px; border-left: 1.5px dashed var(--grid); }
+.chap { display: flex; align-items: center; gap: 16px; width: 100%; text-align: left; padding: 11px 2px; }
+.chap .emb { width: 72px; height: 72px; flex: none; border: var(--rule) solid var(--ink); background: var(--paper);
+  display: grid; place-items: center; position: relative; z-index: 1; box-shadow: 0 0 0 5px var(--bg); }
+.chap .emb svg { width: 74%; height: 74%; overflow: visible; }
+.chap .emb .sh { fill: var(--ink); }
+.chap .emb .pp { fill: none; stroke: var(--grid); stroke-width: .12; }
+.chap.done .emb { background: var(--ink); }
+.chap.done .emb .sh { fill: var(--bg); }
+.chap.done .emb .pp { stroke: var(--bg); opacity: .4; }
+.chap .txt { flex: 1; min-width: 0; }
+.chap .txt b { display: block; font-size: 21px; letter-spacing: -.3px; }
+.chap .txt span { color: var(--muted); font-size: 14px; font-style: italic; }
+.chap .bar { display: block; height: 3px; background: var(--line); margin-top: 8px; }
+.chap .bar i { display: block; height: 100%; background: var(--ink); }
+.chap .end { width: 22px; height: 22px; flex: none; color: var(--muted); }
+.chap.locked { cursor: default; }
+.chap.locked .emb, .chap.locked .txt { opacity: .42; }
+.chap:not(.locked):active .txt { opacity: .7; }
+
+/* seviye ızgarası: her kutuda hedefin küçük resmi */
+.lv-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; }
+.lv { aspect-ratio: 1; border: var(--rule) solid var(--ink); background: var(--paper); position: relative;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; }
+.lv svg { width: 52%; height: 52%; overflow: visible; }
+.lv .sh { fill: var(--ink); }
+.lv .pp { fill: none; stroke: var(--grid); stroke-width: .12; }
+.lv .num { position: absolute; top: 5px; left: 8px; font-size: 13px; font-weight: 700; color: var(--muted); }
+.lv .st { font-size: 11px; letter-spacing: 2px; color: var(--line); line-height: 1; }
+.lv .st .on { color: var(--accent); }
+.lv.next { border-width: 3px; }
+.lv.locked { border: 1px dashed var(--grid); background: none; cursor: default; }
+.lv.locked svg { opacity: .25; }
+.lv:not(.locked):active { transform: scale(.96); }
+
+/* ================= OYUN EKRANI =================
+   Üst çizgi, hedef bandı, tahta, kip düğmeleri ve araçlar aynı genişlikte (--bw). */
+.g-top { width: var(--bw); display: flex; align-items: center; gap: 4px; min-height: 50px; border-bottom: var(--rule) solid var(--ink); }
+.g-top .ttl { flex: 1; text-align: center; display: flex; flex-direction: column; line-height: 1.1; }
+.g-top .ttl b { font-size: 22px; letter-spacing: -.3px; }
+.g-top .ttl small { font-size: 13.5px; font-style: italic; color: var(--muted); }
+.icon-btn { width: 44px; height: 44px; display: grid; place-items: center; flex: none; border-radius: 50%; }
+.icon-btn svg { width: 22px; height: 22px; }
+.icon-btn:active { background: var(--line); }
+
+.band { width: var(--bw); display: flex; align-items: stretch; gap: 14px; margin-top: 12px; }
+.lbl { display: block; font-size: 11.5px; letter-spacing: 2.5px; text-transform: uppercase; font-weight: 700; color: var(--muted); }
+.target { border: var(--rule) solid var(--ink); background: var(--paper); position: relative; display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 8px; }
+.target::before { content: ""; position: absolute; inset: 3px; border: 1px solid var(--line); pointer-events: none; }
+.target canvas { width: 84px; height: 84px; display: block; }
+.target.hit { border-color: var(--accent); }
+.target.hit .lbl { color: var(--accent); }
+.counter { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: flex-end; text-align: right; }
+.counter b { font-size: 46px; font-weight: 700; line-height: 1; letter-spacing: -1.5px; font-variant-numeric: lining-nums tabular-nums; }
+.counter b.bump { animation: bump .2s ease-out; }
+.counter small { font-size: 14px; font-style: italic; color: var(--muted); margin-top: 4px; }
+.counter small.over { text-decoration: line-through; }
+@keyframes bump { from { transform: translateY(-3px); opacity: .5; } to { transform: none; opacity: 1; } }
+
+.status { width: var(--bw); text-align: center; color: var(--muted); font-style: italic; font-size: 14.5px; margin: 8px 0 0; min-height: 40px;
+  display: flex; align-items: center; justify-content: center; line-height: 1.35; }
+.status.warn { color: var(--accent); }
+
+.stage { flex: 1; width: var(--bw); min-height: 0; display: grid; place-items: center; }
+#board { width: min(100%, 52vh, 440px); aspect-ratio: 1; display: block; touch-action: none; }
+
+/* kip: Katla / Kes (seçili olan mürekkep dolgulu) */
+.modes { width: var(--bw); display: flex; gap: 10px; margin-top: 8px; }
+.mode { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 8px; font-size: 18px; font-weight: 700;
+  border: var(--rule) solid var(--ink); background: var(--paper); }
+.mode svg { width: 22px; height: 22px; }
+.mode.on { background: var(--ink); color: var(--bg); }
+.mode:disabled { opacity: .4; cursor: default; }
+.mode.hinted { animation: glow 1.6s ease-out 2; }
+@keyframes glow { 0%, 55% { box-shadow: 0 0 0 4px var(--accent); } 100% { box-shadow: 0 0 0 0 transparent; } }
+
+.tools { width: var(--bw); display: flex; justify-content: space-between; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line); }
+.tool { flex: 1; padding: 4px; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 13.5px; font-style: italic; white-space: nowrap; }
+.tool svg { width: 22px; height: 22px; }
+.tool:disabled { opacity: .35; cursor: default; }
+.tool .ic { position: relative; display: block; line-height: 0; }
+.tool .cnt { position: absolute; top: -6px; right: -12px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px; background: var(--ink); color: var(--bg);
+  font-size: 11px; font-weight: 700; font-style: normal; line-height: 17px; text-align: center; }
+.tool .cnt.ad { background: var(--accent); color: var(--on-accent); }
+.ad-msg { text-align: center; font-size: 17px; line-height: 1.45; margin: 4px 0 8px; }
+
+/* ================= PENCERELER ================= */
+.modal { position: fixed; inset: 0; background: var(--overlay); display: none; align-items: flex-end; justify-content: center; z-index: 20; }
+.modal.show { display: flex; }
+.sheet { background: var(--bg); width: 100%; max-width: 520px; max-height: 92%; overflow-y: auto; border-top: 3px double var(--ink);
+  padding: 22px 18px calc(env(safe-area-inset-bottom) + 18px); animation: up .24s ease-out; }
+@media (min-width: 600px) and (min-height: 600px) { .modal { align-items: center; } .sheet { border: var(--rule) solid var(--ink); } }
+@keyframes up { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+.sheet h3 { margin: 0 0 6px; font-size: 26px; font-weight: 700; text-align: center; letter-spacing: -.4px; }
+.primary { width: 100%; background: var(--btn); color: var(--btn-ink); border-radius: 2px; padding: 15px; font-weight: 700; font-size: 19px; margin-top: 10px; }
+.secondary { width: 100%; padding: 14px; border: var(--rule) solid var(--ink); font-weight: 700; font-size: 18px; margin-top: 10px; }
+.primary:active, .secondary:active { opacity: .8; }
+.res-stars { text-align: center; font-size: 34px; letter-spacing: 6px; line-height: 1; margin: 6px 0 4px; }
+.res-stars i { font-style: normal; }
+.res-stars i.off { filter: grayscale(1); opacity: .25; }
+.res-sub { text-align: center; color: var(--muted); font-style: italic; margin: 0 0 12px; }
+.res-line { text-align: center; font-size: 17px; padding: 12px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); margin-bottom: 6px; }
+.res-line span { color: var(--muted); }
+
+#toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 100px); transform: translate(-50%, 20px); opacity: 0;
+  background: var(--btn); color: var(--btn-ink); padding: 11px 18px; max-width: 88vw; text-align: center;
+  pointer-events: none; transition: opacity .2s, transform .2s; z-index: 40; font-size: 15.5px; line-height: 1.4; font-style: italic; }
+#toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* ================= AYARLAR, DİL, NASIL OYNANIR (Köşeler'den) ================= */
+.rows { border-top: var(--rule) solid var(--ink); border-bottom: 1px solid var(--line); margin: 12px 0 14px; }
+:root[data-theme="dark"] .rows { border-top-color: var(--line); }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 2px; width: 100%; text-align: left; min-height: 50px; font-size: 17px; }
+.row + .row { border-top: 1px solid var(--line); }
+.row .val { color: var(--muted); font-style: italic; }
+.row.danger { color: var(--accent); }
+.row .chev { width: 18px; height: 18px; color: var(--muted); flex: none; }
+.switch { width: 46px; height: 26px; border-radius: 13px; border: 1.5px solid var(--ink); position: relative; flex: none; transition: background .2s; }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 17px; height: 17px; border-radius: 50%; background: var(--ink); transition: transform .2s, background .2s; }
+.switch.on { background: var(--ink); }
+.switch.on::after { transform: translateX(20px); background: var(--bg); }
+.seg { display: flex; border: 1.5px solid var(--ink); }
+.seg button { padding: 6px 9px; font-size: 14.5px; white-space: nowrap; }
+.seg button.on { background: var(--btn); color: var(--btn-ink); }
+.lang-badge { width: 34px; height: 34px; border: 1.5px solid var(--ink); display: grid; place-items: center; font-weight: 700; font-size: 12px; flex: none; }
+.lang-row { justify-content: flex-start; gap: 12px; }
+.lang-row .name { flex: 1; }
+.lang-row svg { width: 20px; height: 20px; color: var(--accent); }
+.version { text-align: center; color: var(--muted); font-size: 13.5px; font-style: italic; margin: 4px 0 0; }
+.help-rule { display: flex; align-items: center; gap: 16px; padding: 14px 2px; border-bottom: 1px solid var(--line); }
+.help-rule svg { width: 84px; height: 84px; flex: none; overflow: visible; }
+.help-rule p { margin: 0; font-size: 16px; line-height: 1.45; }
+.help-rule .pp { fill: var(--paper); stroke: var(--ink); stroke-width: .9; stroke-linejoin: round; }
+.help-rule .bk { fill: var(--line); stroke: var(--ink); stroke-width: .9; stroke-linejoin: round; }
+.help-rule .gh { fill: none; stroke: var(--grid); stroke-width: .7; stroke-dasharray: 2 2; }
+.help-rule .ac { stroke: var(--accent); stroke-width: 1.8; stroke-linecap: round; fill: none; }
+.help-rule .pc { fill: var(--accent); }
+.help-rule .ar { fill: none; stroke: var(--muted); stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; }
+.tip { color: var(--muted); text-align: center; font-size: 15px; font-style: italic; line-height: 1.45; margin: 14px 4px 4px; }
+
+/* kısa ekran (iPhone SE) */
+@media (max-height: 700px) {
+  .target canvas { width: 66px; height: 66px; } .counter b { font-size: 38px; }
+  .mode { padding: 9px 8px; font-size: 16px; } .status { min-height: 36px; font-size: 13.5px; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+
+<!-- ================= BÖLÜM HARİTASI ================= -->
+<div id="map" class="screen"><div class="wrap">
+  <div class="head"><h2 data-i18n="map.title"></h2><span class="tot" id="mapTot"></span>
+    <button class="icon-btn" id="settingsBtn" data-i18n-aria="settings.title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+  </div>
+  <div class="chapters" id="chapters"></div>
+</div></div>
+
+<!-- ================= SEVİYELER ================= -->
+<div id="levels" class="screen"><div class="wrap">
+  <div class="head">
+    <button class="icon-btn" id="lvBack" aria-label="‹"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <h2 id="lvTitle"></h2><span class="tot" id="lvTot"></span>
+  </div>
+  <p class="lede" id="lvLede"></p>
+  <div class="lv-grid" id="lvGrid"></div>
+</div></div>
+
+<!-- ================= OYUN ================= -->
+<div id="game" class="screen">
+  <div class="g-top">
+    <button class="icon-btn" id="backBtn" aria-label="‹"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <div class="ttl"><b data-i18n="app.name"></b><small id="levelLabel"></small></div>
+    <button class="icon-btn" id="nextBtn" aria-label="›"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
+  </div>
+
+  <div class="band">
+    <div class="target" id="targetBox"><canvas id="targetCv"></canvas><span class="lbl" data-i18n="game.target"></span></div>
+    <div class="counter"><span class="lbl" data-i18n="game.folds"></span><b id="folds">0</b><small id="par"></small></div>
+  </div>
+
+  <p class="status" id="status"></p>
+  <div class="stage"><canvas id="board"></canvas></div>
+
+  <div class="modes">
+    <button class="mode on" id="modeFold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 4h9l-3 8 3 8H4z"/><path d="M13 4l7 3v13l-7-0" stroke-dasharray="2 2.2"/></svg><span data-i18n="mode.fold"></span></button>
+    <button class="mode" id="modeCut"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.1 15.9M14.5 14.5L20 20M8.1 8.1L12 12"/></svg><span data-i18n="mode.cut"></span></button>
+  </div>
+
+  <div class="tools">
+    <button class="tool" id="undoBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg><span data-i18n="btn.undo"></span></button>
+    <button class="tool" id="resetBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg><span data-i18n="btn.reset"></span></button>
+    <button class="tool" id="hintBtn"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg><i class="cnt" id="hintCnt"></i></span><span data-i18n="btn.hint"></span></button>
+  </div>
+</div>
+
+<!-- sonuç -->
+<div class="modal" id="resultModal"><div class="sheet">
+  <h3 id="resTitle"></h3>
+  <div class="res-stars" id="resStars"></div>
+  <p class="res-sub" id="resSub"></p>
+  <div class="res-line" id="resLine"></div>
+  <button class="primary" id="resNext"></button>
+  <button class="secondary" id="resRetry"></button>
+</div></div>
+
+<!-- ödüllü reklam onayı: önce ne kazanılacağı söylenir, sonra video -->
+<div class="modal" id="adModal"><div class="sheet">
+  <h3 data-i18n="btn.hint"></h3>
+  <p class="ad-msg" id="adMsg"></p>
+  <button class="primary" id="adWatch" data-i18n="ad.watch"></button>
+  <button class="secondary" id="adCancel" data-i18n="ad.cancel"></button>
+</div></div>
+
+<!-- ayarlar (stüdyo standardı) -->
+<div class="modal" id="settingsModal"><div class="sheet">
+  <h3 data-i18n="settings.title"></h3>
+  <div class="rows">
+    <button class="row" data-toggle="sound"><span data-i18n="settings.sound"></span><i class="switch"></i></button>
+    <button class="row" data-toggle="haptic"><span data-i18n="settings.haptic"></span><i class="switch"></i></button>
+  </div>
+  <div class="rows">
+    <button class="row" id="langBtn"><span data-i18n="settings.lang"></span><span class="val" id="langCur"></span></button>
+    <div class="row"><span data-i18n="settings.theme"></span>
+      <div class="seg" id="themeSeg">
+        <button data-theme-opt="system" data-i18n="theme.system"></button>
+        <button data-theme-opt="light" data-i18n="theme.light"></button>
+        <button data-theme-opt="dark" data-i18n="theme.dark"></button>
+      </div>
+    </div>
+  </div>
+  <div class="rows">
+    <button class="row" id="howtoBtn"><span data-i18n="settings.howto"></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 5l7 7-7 7"/></svg></button>
+    <button class="row" id="supportBtn"><span data-i18n="settings.support"></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 5l7 7-7 7"/></svg></button>
+    <button class="row" id="reportBtn"><span data-i18n="settings.report"></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 5l7 7-7 7"/></svg></button>
+    <button class="row" id="privacyBtn"><span data-i18n="settings.privacy"></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 5l7 7-7 7"/></svg></button>
+    <button class="row" id="privacyChoicesBtn" style="display:none"><span data-i18n="settings.privacyChoices"></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 5l7 7-7 7"/></svg></button>
+  </div>
+  <div class="rows"><button class="row danger" id="resetProgBtn"><span id="resetLabel" data-i18n="settings.reset"></span></button></div>
+  <p class="version" id="versionText"></p>
+  <button class="secondary" data-close data-i18n="close"></button>
+</div></div>
+
+<div class="modal" id="langModal"><div class="sheet">
+  <h3 data-i18n="settings.lang"></h3>
+  <div class="rows" id="langList"></div>
+  <button class="secondary" data-close data-i18n="close"></button>
+</div></div>
+
+<!-- nasıl oynanır: üç adım, küçük çizimlerle -->
+<div class="modal" id="helpModal"><div class="sheet">
+  <h3 data-i18n="help.title"></h3>
+  <div class="help-rule">
+    <svg viewBox="-4 -4 48 48"><rect class="gh" x="0" y="0" width="40" height="40"/><rect class="pp" x="20" y="0" width="20" height="40"/><rect class="bk" x="20" y="0" width="14" height="40"/>
+      <path class="ar" d="M8 22 C 14 14, 22 14, 28 20 M24 20 l4 0 l0 -4"/></svg>
+    <p data-i18n="help.r1"></p></div>
+  <div class="help-rule">
+    <svg viewBox="-4 -4 48 48"><rect class="pp" x="10" y="0" width="20" height="40"/><path class="ac" d="M6 34 L34 6"/></svg>
+    <p data-i18n="help.r2"></p></div>
+  <div class="help-rule">
+    <svg viewBox="-4 -4 48 48"><rect class="pp" x="0" y="0" width="40" height="40"/><path class="pc" d="M14 0 H26 L20 8 Z"/><path class="gh" d="M20 0 V40"/></svg>
+    <p data-i18n="help.r3"></p></div>
+  <p class="tip" data-i18n="help.tip"></p>
+  <button class="primary" data-close data-i18n="ok"></button>
+</div></div>
+
+<div id="toast"></div>
+
+<script src="engine.js"></script>
+<script src="locales/tr.js"></script>
+<script src="locales/en.js"></script>
+<script src="locales/fr.js"></script>
+<script>
+'use strict';
+// =====================================================================
+// SABİTLER
+// =====================================================================
+const VERSION = '0.1.0';
+const KEY = 'tks-';
+const SITE = 'https://littlelemmastudio.github.io/foldandcut';   // destek/gizlilik sayfaları henüz yok (TODO.md)
+const SUPPORT_EMAIL = 'littlelemmastudio@gmail.com';            // stüdyonun herkese açık adresi
+const E = window.Engine;
+const $ = id => document.getElementById(id);
+const SETTLE_MS = 160;    // bırakınca kâğıdın ızgara doğrusuna oturması
+const CANCEL_MS = 200;    // geçersiz yerde bırakınca kâğıdın geri inmesi
+const MAGNET = 0.45;      // kesik mıknatısı: uçların hedef çizgisine en çok uzaklığı (kare birimi)
+const MAGNET_SIN = 0.25;  // kesik mıknatısı: yön farkı (sin ≈ 14°)
+const UNFOLD_MS = 340;     // açılırken her kat
+const CUT_PAUSE_MS = 380;  // kesikten sonra, açılmadan önce
+const HINT_DEPTH = 2;      // çözüm yolundan çıkınca ipucu aramasının derinliği (telefonda hızlı kalsın)
+
+// Reklam: ipucu ödüllü reklamın doğal yeri (stüdyo standardı). Her bölümde HINTS_FREE ücretsiz ipucu, sonra videoyla +1.
+// Geçiş reklamı yalnız kazandıktan sonra "Sonraki seviye"ye basınca; 1. bölümde hiç yok.
+// AdMob birimleri henüz açılmadı (TODO.md): boşken reklam yüklenmez, ödüllü ipucu yine verilir.
+const AD_UNITS = {
+  ios:     { rewarded: '', interstitial: '' },
+  android: { rewarded: '', interstitial: '' },
+};
+const HINTS_FREE = 3;
+const AD_RULES = {
+  FREE_CHAPTERS: 1,      // ilk bölüm (6 seviye) reklamsız
+  EVERY_WINS: 3,         // her 3 kazanmada bir geçiş reklamı
+  MIN_GAP_SEC: 120,      // iki reklam arası en az 2 dk
+};
+
+// =====================================================================
+// KAYIT: localStorage + uygulamada Capacitor Preferences yedeği (−2048 / Köşeler).
+// iOS web verisini silerse açılışta yedekten geri yüklenir (restoreFromBackup). Tarayıcıda yalnız localStorage.
+// =====================================================================
+const Native = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform() ? window.Capacitor.Plugins : null;
+const Prefs = Native && Native.Preferences;
+let prefsReady = !Prefs;
+const prefsPending = new Map();
+function mirror(k, v) {
+  if (!Prefs) return;
+  if (!prefsReady) { prefsPending.set(k, v); return; }
+  (v === null ? Prefs.remove({ key: k }) : Prefs.set({ key: k, value: v })).catch(() => {});
+}
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(KEY + k); return v === null ? d : v; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(KEY + k, String(v)); } catch (e) {} mirror(KEY + k, String(v)); },
+  remove(k) { try { localStorage.removeItem(KEY + k); } catch (e) {} mirror(KEY + k, null); },
+  keys() { const out = []; try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k.startsWith(KEY)) out.push(k.slice(KEY.length)); } } catch (e) {} return out; },
+};
+async function restoreFromBackup() {
+  if (!Prefs) return;
+  const intact = store.get('alive', '') === '1';
+  let restored = 0;
+  if (!intact) {
+    try {
+      const { keys } = await Prefs.keys();
+      for (const k of keys.filter(k => k.startsWith(KEY))) {
+        const { value } = await Prefs.get({ key: k });
+        if (value !== null) { localStorage.setItem(k, value); restored++; }
+      }
+    } catch (e) {}
+  }
+  try { localStorage.setItem(KEY + 'alive', '1'); } catch (e) {}
+  if (restored) return location.reload();
+  prefsReady = true;
+  for (const [k, v] of prefsPending) mirror(k, v);
+  prefsPending.clear();
+}
+
+// =====================================================================
+// TEMA: sistem / açık / koyu (Ayarlar'dan seçilir; ?theme=dark|light ile de denenir)
+// =====================================================================
+const Theme = {
+  mq: window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null,
+  get pref() {
+    const q = new URLSearchParams(location.search).get('theme');
+    const v = q || store.get('theme', 'system');
+    return v === 'light' || v === 'dark' ? v : 'system';
+  },
+  apply() {
+    const dark = this.pref === 'dark' || (this.pref === 'system' && !!this.mq && this.mq.matches);
+    document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+    $('themeColor').content = dark ? '#0b111f' : '#f3eee2';
+    if (Native && Native.StatusBar) Native.StatusBar.setStyle({ style: dark ? 'DARK' : 'LIGHT' }).catch(() => {});
+    document.querySelectorAll('#themeSeg button').forEach(b => b.classList.toggle('on', b.dataset.themeOpt === this.pref));
+    if (typeof readColors === 'function' && C) { readColors(); if (G.lv) { drawTarget(); render(); } }
+  },
+};
+
+// =====================================================================
+// SES ve TİTREŞİM (Köşeler'deki Fx; ses dosyası yok, WebAudio ile üretilir)
+// Kâğıt sesleri süzülmüş gürültüyle: katlama = kısa hışırtı + kırışma, kesik = iki makas "çıt"ı, açılma = yumuşak hışırtı.
+// Bağlam açılıştan hemen sonra (askıda) kurulur; ilk dokunuşta yalnız resume() (stüdyo dersi: ilk dokunuşta kurmak takıltıyordu).
+// =====================================================================
+const opt = k => store.get(k, '1') === '1';    // açık/kapalı ayarlar (varsayılan açık)
+const Fx = {
+  ctx: null, noiseBuf: null,
+  get sound() { return opt('sound'); },
+  get haptic() { return opt('haptic'); },
+  create() {
+    if (this.ctx || !this.sound) return;    // ses kapalıysa bağlam hiç kurulmaz
+    try {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const n = this.ctx.sampleRate * 0.5, b = this.ctx.createBuffer(1, n, this.ctx.sampleRate), d = b.getChannelData(0);
+      for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+      this.noiseBuf = b;
+    } catch (e) {}
+  },
+  unlock() { this.create(); if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); },
+  tone(freq, dur = 0.09, { type = 'sine', vol = 0.06, delay = 0, to = 0 } = {}) {
+    if (!this.sound || !this.ctx) return;
+    const t0 = this.ctx.currentTime + delay;
+    const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, t0);
+    if (to) o.frequency.exponentialRampToValueAtTime(to, t0 + dur);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(vol, t0 + 0.006);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g).connect(this.ctx.destination);
+    o.start(t0); o.stop(t0 + dur + 0.02);
+  },
+  // süzülmüş gürültü: kâğıt hışırtısı (bandpass), makas çıtı (highpass)
+  noise(dur, { freq = 2000, to = 0, q = 0.9, filter = 'bandpass', vol = 0.05, delay = 0, attack = 0.004 } = {}) {
+    if (!this.sound || !this.ctx || !this.noiseBuf) return;
+    const t0 = this.ctx.currentTime + delay;
+    const src = this.ctx.createBufferSource(), f = this.ctx.createBiquadFilter(), g = this.ctx.createGain();
+    src.buffer = this.noiseBuf;
+    f.type = filter; f.frequency.setValueAtTime(freq, t0); f.Q.value = q;
+    if (to) f.frequency.exponentialRampToValueAtTime(to, t0 + dur);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(vol, t0 + attack);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    src.connect(f).connect(g).connect(this.ctx.destination);
+    src.start(t0, Math.random() * 0.3); src.stop(t0 + dur + 0.02);
+  },
+  buzz(ms) {
+    if (!this.haptic) return;
+    try {
+      if (Native && Native.Haptics) Native.Haptics.impact({ style: ms < 15 ? 'LIGHT' : ms < 35 ? 'MEDIUM' : 'HEAVY' }).catch(() => {});
+      else if (navigator.vibrate) navigator.vibrate(ms);
+    } catch (e) {}
+  },
+  grab() { this.noise(0.06, { freq: 3200, vol: 0.012 }); },
+  tick() { this.tone(1700, 0.018, { vol: 0.012 }); this.buzz(5); },          // katlama çizgisi bir ızgara çizgisinden ötekine geçti
+  fold() { this.noise(0.16, { freq: 900, to: 3400, vol: 0.05, attack: 0.02 }); this.noise(0.05, { freq: 5000, filter: 'highpass', vol: 0.02, delay: 0.12 });
+    this.tone(150, 0.07, { type: 'triangle', vol: 0.04, delay: 0.12, to: 110 }); this.buzz(12); },
+  back() { this.noise(0.12, { freq: 2400, to: 900, vol: 0.03 }); },          // kalkan kâğıt geri indi
+  snap() { this.tone(1320, 0.04, { vol: 0.018 }); this.buzz(6); },            // kesik çizgiye yapıştı
+  cut() { [0, 0.075].forEach(d => { this.noise(0.035, { freq: 4500, filter: 'highpass', vol: 0.07, delay: d, attack: 0.002 }); this.tone(2600, 0.03, { type: 'triangle', vol: 0.015, delay: d }); });
+    this.buzz(20); },
+  unfold() { this.noise(0.22, { freq: 1600, to: 700, vol: 0.03, attack: 0.04 }); },
+  aligned() { [659, 988].forEach((f, i) => this.tone(f, 0.35, { vol: 0.03, delay: i * 0.06 })); this.buzz(10); },
+  click() { this.tone(700, 0.03, { vol: 0.02 }); },
+  undo() { this.tone(420, 0.12, { vol: 0.04, to: 260 }); },
+  nope() { this.tone(150, 0.16, { type: 'triangle', vol: 0.06 }); this.buzz(25); },
+  hint() { [784, 1175].forEach((f, i) => this.tone(f, 0.25, { vol: 0.035, delay: i * 0.08 })); },
+  lose() { [392, 330, 262].forEach((f, i) => this.tone(f, 0.3, { type: 'triangle', vol: 0.05, delay: i * 0.14 })); this.buzz(40); },
+  win() { [523, 587, 659, 784, 880, 1047].forEach((f, i) => this.tone(f, 0.5, { vol: 0.045, delay: 0.1 + i * 0.09 })); setTimeout(() => this.buzz(30), 100); },
+};
+setTimeout(() => Fx.create(), 0);
+document.addEventListener('pointerdown', () => Fx.unlock(), true);
+
+// =====================================================================
+// REKLAM, İZİN, ANALYTICS (−2048 1.1'deki kit). Tarayıcıda Native = null: reklam çıkmaz, track() boş.
+// Eklentiler (AdMob, Firebase) hesaplar açılınca eklenecek (TODO.md); yokken bu kod sessizce hiçbir şey yapmaz.
+// =====================================================================
+const AdMobP = Native && Native.AdMob;
+const FA = Native && Native.FirebaseAnalytics;
+const CL = Native && Native.FirebaseCrashlytics;
+// Analytics olayı: adlar kısa, sabit, kişisel veri yok.
+function track(name, params = {}) { if (FA) FA.logEvent({ name, params }).catch(() => {}); }
+function adUnits() {
+  const platform = window.Capacitor && window.Capacitor.getPlatform ? window.Capacitor.getPlatform() : 'web';
+  const u = AD_UNITS[platform];
+  return u && u.rewarded && u.interstitial ? u : null;
+}
+// İzin akışı: önce Google UMP (AB/İngiltere'de izin penceresi), sonra iOS izleme izni (ATT).
+const Consent = {
+  async run() {
+    if (!AdMobP) return false;
+    let info = null;
+    try {
+      info = await AdMobP.requestConsentInfo();
+      if (info.isConsentFormAvailable && info.status === 'REQUIRED') info = await AdMobP.showConsentForm();
+    } catch (e) {}
+    $('privacyChoicesBtn').style.display = info && info.privacyOptionsRequirementStatus === 'REQUIRED' ? '' : 'none';
+    const outside = !!info && info.status === 'NOT_REQUIRED';
+    if (FA) for (const type of ['ANALYTICS_STORAGE', 'AD_STORAGE', 'AD_USER_DATA', 'AD_PERSONALIZATION'])
+      FA.setConsent({ type, status: outside ? 'GRANTED' : 'DENIED' }).catch(() => {});
+    try {
+      const { status } = await AdMobP.trackingAuthorizationStatus();
+      if (status === 'notDetermined') await AdMobP.requestTrackingAuthorization();
+    } catch (e) {}
+    return !!info && info.canRequestAds;
+  },
+};
+// Gerçek reklamlar. Açılışta yüklenmez (ilk oyun takılmasın, stüdyo dersi): ilk sonuç ekranında ya da 25 sn sonra.
+const NativeAds = {
+  ready: null, units: null,
+  loaded: { rewarded: false, interstitial: false },
+  loading: { rewarded: null, interstitial: null },
+  init() {
+    if (!this.ready) this.ready = (async () => {
+      if (!(await Consent.run())) return false;
+      this.units = adUnits();
+      if (!this.units) return false;
+      await AdMobP.initialize({});
+      if (this.wantWarm) this.warm(); else this.warmTimer = setTimeout(() => this.warm(), 25000);
+      return true;
+    })().catch(() => false).then(ok => { if (!ok) this.ready = null; return ok; });
+    return this.ready;
+  },
+  warm() {
+    this.wantWarm = true;
+    if (this.warmed || !this.units) return;
+    this.warmed = true; clearTimeout(this.warmTimer);
+    this.prepare('rewarded');
+    setTimeout(() => this.prepare('interstitial'), 1500);
+  },
+  prepare(kind) {
+    this.loaded[kind] = false;
+    const p = kind === 'rewarded'
+      ? AdMobP.prepareRewardVideoAd({ adId: this.units.rewarded })
+      : AdMobP.prepareInterstitial({ adId: this.units.interstitial });
+    this.loading[kind] = p.then(() => { this.loaded[kind] = true; })
+      .catch(() => setTimeout(() => this.prepare(kind), 60000))
+      .finally(() => { this.loading[kind] = null; });
+  },
+  // Olay tabanlı: "show" sözü yalnız ödülde döner, kapatmada dönmez. null = reklam yok.
+  show(kind) {
+    return new Promise(async resolve => {
+      if (!(await this.init())) return resolve(null);
+      this.warm();
+      if (!this.loaded[kind] && this.loading[kind]) await Promise.race([this.loading[kind], new Promise(r => setTimeout(r, 8000))]);
+      if (!this.loaded[kind]) return resolve(null);
+      const ev = kind === 'rewarded'
+        ? { reward: 'onRewardedVideoAdReward', end: 'onRewardedVideoAdDismissed', fail: 'onRewardedVideoAdFailedToShow' }
+        : { end: 'interstitialAdDismissed', fail: 'interstitialAdFailedToShow' };
+      let rewarded = false;
+      const hs = [];
+      const finish = ok => { hs.forEach(h => h.remove()); this.prepare(kind); resolve(ok); };
+      if (ev.reward) hs.push(await AdMobP.addListener(ev.reward, () => { rewarded = true; }));
+      hs.push(await AdMobP.addListener(ev.end, () => finish(kind === 'rewarded' ? rewarded : true)));
+      hs.push(await AdMobP.addListener(ev.fail, () => finish(null)));
+      this.loaded[kind] = false;
+      (kind === 'rewarded' ? AdMobP.showRewardVideoAd() : AdMobP.showInterstitial()).catch(() => {});
+    });
+  },
+};
+if (CL) {
+  const report = msg => CL.recordException({ message: String(msg).slice(0, 500) }).catch(() => {});
+  window.addEventListener('error', e => report(e.message + ' @' + (e.filename || '').split('/').pop() + ':' + e.lineno));
+  window.addEventListener('unhandledrejection', e => report('promise: ' + (e.reason && e.reason.message || e.reason)));
+}
+const adState = {
+  get wins() { return +store.get('ad-wins', '0') || 0; }, set wins(v) { store.set('ad-wins', v); },
+  get lastAt() { return +store.get('ad-last', '0') || 0; }, set lastAt(v) { store.set('ad-last', v); },
+  get skipNext() { return store.get('ad-skip', '') === '1'; }, set skipNext(v) { store.set('ad-skip', v ? '1' : ''); },
+};
+const Ads = {
+  // Önce bizim onay penceremiz (ne kazanılacağını söyler), sonra ödüllü reklam.
+  // Reklam yüklenemezse ya da hazır değilse (tarayıcı dahil) oyuncu cezalandırılmaz: hak yine verilir. Yarıda kapatırsa verilmez.
+  rewarded(msg, done) {
+    const m = $('adModal'), watch = $('adWatch');
+    let finished = false;
+    $('adMsg').textContent = msg;
+    watch.disabled = false;
+    m.classList.add('show');
+    const close = (granted, watched) => {
+      if (finished) return; finished = true;
+      m.classList.remove('show');
+      watch.onclick = $('adCancel').onclick = null;
+      if (watched) { adState.lastAt = Date.now(); adState.skipNext = true; }
+      track('ad_reward', { granted: granted ? 1 : 0, shown: watched ? 1 : 0 });
+      done(granted);
+    };
+    watch.onclick = () => { watch.disabled = true; Fx.click(); NativeAds.show('rewarded').then(r => (r === null ? close(true, false) : close(r, true))); };
+    $('adCancel').onclick = () => { Fx.click(); close(false, false); };
+  },
+  interstitial(done) { NativeAds.show('interstitial').then(r => { if (r) { adState.lastAt = Date.now(); track('ad_interstitial'); } done(); }); },
+};
+// Geçiş reklamı yalnız buradan: kazandıktan sonra "Sonraki seviye"ye basınca.
+function maybeInterstitial(then) {
+  if (cur.c < AD_RULES.FREE_CHAPTERS) return then();
+  adState.wins = adState.wins + 1;
+  const due = adState.wins >= AD_RULES.EVERY_WINS && (Date.now() - adState.lastAt) / 1000 >= AD_RULES.MIN_GAP_SEC;
+  if (!due) return then();
+  adState.wins = 0;
+  if (adState.skipNext) { adState.skipNext = false; return then(); }   // az önce ödüllü izlendi: bu sefer atla
+  Ads.interstitial(then);
+}
+// İpucu hakları: bölüm başına HINTS_FREE ücretsiz (kayıtlı: tks-hints = { bölüm: kullanılan })
+const Hints = {
+  all: (() => { try { return JSON.parse(store.get('hints', '{}')) || {}; } catch (e) { return {}; } })(),
+  left(ch) { return Math.max(0, HINTS_FREE - (this.all[ch] || 0)); },
+  use(ch) { this.all[ch] = (this.all[ch] || 0) + 1; store.set('hints', JSON.stringify(this.all)); },
+};
+
+// =====================================================================
+// DİLLER: ?lang= → kayıtlı seçim → cihaz dili → İngilizce
+// =====================================================================
+const LOCALES = window.LOCALES || {};
+const FALLBACK_LANG = 'en';
+function detectLang() {
+  const q = new URLSearchParams(location.search).get('lang');
+  if (LOCALES[q]) return q;
+  const saved = store.get('lang', '');
+  if (LOCALES[saved]) return saved;
+  for (const l of navigator.languages || [navigator.language || '']) {
+    const base = String(l).toLowerCase().split('-')[0];
+    if (LOCALES[base]) return base;
+  }
+  return FALLBACK_LANG;
+}
+let lang = detectLang();
+function t(key, p) {
+  let s = (LOCALES[lang].strings[key] ?? LOCALES[FALLBACK_LANG].strings[key] ?? key);
+  if (p) s = s.replace(/\{(\w+)\}/g, (m, k) => (k in p ? p[k] : m));
+  return s;
+}
+function applyI18n() {
+  document.documentElement.lang = lang;
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-aria]').forEach(el => el.setAttribute('aria-label', t(el.dataset.i18nAria)));
+  document.title = t('app.name');
+  $('versionText').textContent = t('settings.version', { v: VERSION });
+  $('langCur').textContent = LOCALES[lang].name;
+}
+function setLang(code) {
+  lang = code; store.set('lang', code);
+  applyI18n(); renderLangList();
+  // açık ekranı yeni dilde yeniden yaz
+  if (CH.length) renderMap();
+  if ($('levels').classList.contains('active')) renderLevels();
+  if ($('game').classList.contains('active') && G.lv) {
+    $('levelLabel').textContent = t('game.level', { ch: G.lv.ch, n: G.lv.k });
+    if (G.msg) G.msg = null;
+    ui();
+  }
+}
+function renderLangList() {
+  const tick = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>';
+  $('langList').innerHTML = Object.entries(LOCALES).map(([code, l]) =>
+    `<button class="row lang-row" data-lang="${code}"><span class="lang-badge">${l.badge || code.toUpperCase()}</span><span class="name">${l.name}</span>${code === lang ? tick : ''}</button>`).join('');
+}
+
+// =====================================================================
+// İLERLEME ve KİLİTLER (Üreteç'teki gibi)
+// Seviye, bir öncekini çözünce açılır; bölüm, önceki bölümün bütün seviyeleri çözülünce. ?unlock her şeyi açar.
+// =====================================================================
+let CH = [];
+const UNLOCK_ALL = new URLSearchParams(location.search).has('unlock');
+const Prog = {
+  all: (() => { try { return JSON.parse(store.get('prog', '{}')) || {}; } catch (e) { return {}; } })(),
+  of(id) { return this.all[id] || null; },
+  save(id, stars, folds) {
+    const o = this.all[id];
+    this.all[id] = { s: Math.max(stars, o ? o.s : 0), f: Math.min(folds, o ? o.f : Infinity) };
+    store.set('prog', JSON.stringify(this.all));
+  },
+};
+const cleared = lv => !!Prog.of(lv.id);
+const levelOpen = (c, i) => UNLOCK_ALL || i === 0 || cleared(CH[c].levels[i - 1]);
+const chapterOpen = c => UNLOCK_ALL || c === 0 || CH[c - 1].levels.every(cleared);
+function chapterStats(c) {
+  const ls = CH[c].levels;
+  return { total: ls.length, done: ls.filter(l => Prog.of(l.id)).length,
+    stars: ls.reduce((s, l) => s + (Prog.of(l.id) ? Prog.of(l.id).s : 0), 0), max: ls.length * 3 };
+}
+const nextOf = c => CH[c].levels.findIndex((l, i) => !Prog.of(l.id) && levelOpen(c, i));
+const nextPlayable = (c, i) => (i + 1 < CH[c].levels.length ? i + 1 : -1);
+
+function show(name) { document.querySelectorAll('.screen').forEach(el => el.classList.toggle('active', el.id === name)); }
+
+// =====================================================================
+// HARİTA ve SEVİYELER
+// =====================================================================
+const targetPath = T => T.map(p => 'M' + p.map(q => q[0] + ' ' + q[1]).join('L') + 'Z').join('');
+const miniSvg = T => `<svg viewBox="-.2 -.2 8.4 8.4"><rect class="pp" width="8" height="8"/><path class="sh" d="${targetPath(T)}"/></svg>`;
+const EMBLEM = { 1: '1-4', 2: '2-1', 3: '3-5', 4: '4-6' };   // bölümü tanıtan hedef (bölümlerin adı yok)
+const ICON_CHEV = '<svg class="end" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>';
+const ICON_LOCK = '<svg class="end" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="1.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+
+function renderMap() {
+  const box = $('chapters'); box.innerHTML = '';
+  let st = 0, mx = 0;
+  CH.forEach((ch, c) => {
+    const S = chapterStats(c), open = chapterOpen(c), done = S.done === S.total;
+    st += S.stars; mx += S.max;
+    const em = ch.levels.find(l => l.id === EMBLEM[ch.id]) || ch.levels[0];
+    const b = document.createElement('button');
+    b.className = 'chap' + (open ? '' : ' locked') + (done ? ' done' : '');
+    b.innerHTML = `<span class="emb">${miniSvg(em.target)}</span><span class="txt"><b>${t('map.chapter', { n: ch.id })}</b>` +
+      `<span>${open ? t('map.progress', { a: S.done, b: S.total }) + ' · ★ ' + S.stars + '/' + S.max : t('map.locked')}</span>` +
+      `<span class="bar"><i style="width:${(S.done / S.total * 100).toFixed(1)}%"></i></span></span>` + (open ? ICON_CHEV : ICON_LOCK);
+    b.onclick = () => (open ? openChapter(c) : toast(t('map.locked')));
+    box.appendChild(b);
+  });
+  $('mapTot').innerHTML = `★ <b>${st}</b>/${mx}`;
+}
+let cur = { c: 0, i: 0 };
+function openChapter(c) { cur.c = c; renderLevels(); show('levels'); }
+function renderLevels() {
+  const c = cur.c, ch = CH[c], S = chapterStats(c), nx = nextOf(c);
+  $('lvTitle').textContent = t('map.chapter', { n: ch.id });
+  $('lvTot').innerHTML = `★ <b>${S.stars}</b>/${S.max}`;
+  $('lvLede').textContent = t('map.progress', { a: S.done, b: S.total });
+  const grid = $('lvGrid'); grid.innerHTML = '';
+  ch.levels.forEach((lv, i) => {
+    const b = document.createElement('button'), P = Prog.of(lv.id), open = levelOpen(c, i);
+    b.className = 'lv' + (!open ? ' locked' : i === nx ? ' next' : '');
+    b.innerHTML = `<span class="num">${i + 1}</span>${miniSvg(lv.target)}<span class="st">${[1, 2, 3].map(k => `<span class="${P && P.s >= k ? 'on' : ''}">★</span>`).join('')}</span>`;
+    b.onclick = () => (open ? play(c, i) : toast(t('map.lockedLevel')));
+    grid.appendChild(b);
+  });
+}
+
+// =====================================================================
+// OYUN DURUMU
+// layers: motorun katman listesi. hist: geri al yığını. foldLines: yapılan katlamaların doğruları
+// (açılma animasyonu için). onTrack/step: oyuncu kayıtlı çözümün yolunda mı (ipucu için).
+// outline: kâğıda basılı hedef çizgisi (orijinal koordinatlar). cands: katlanmış kâğıtta görünen hedef
+// çizgilerinin doğruları; tek doğruya indiyse kesilecek yer belli (mıknatıs bunlara çeker).
+// phase: 'play' | 'anim' | 'result'
+// =====================================================================
+const G = {
+  lv: null, layers: null, folds: 0, hist: [], foldLines: [], onTrack: true, step: 0, outline: [], cands: [],
+  mode: 'fold', phase: 'play', drag: null, preview: null, hint: null, anim: null, result: null, msg: null, warn: false,
+  view: null, viewTo: null, coach: null,
+};
+const printed = () => !G.lv.blind;
+const aligned = () => printed() && G.phase === 'play' && G.cands.length === 1;
+
+function play(c, i) {
+  cur = { c, i };
+  G.lv = { ...CH[c].levels[i], ch: CH[c].id, k: i + 1 };
+  G.outline = E.targetOutline(G.lv.target);
+  $('levelLabel').textContent = t('game.level', { ch: G.lv.ch, n: G.lv.k });
+  $('resultModal').classList.remove('show');
+  show('game');
+  resize();
+  restart(true);
+  G.coach = COACH.includes(G.lv.id) && !Prog.of(G.lv.id) ? coachFor() : null;
+  track('level_start', { level: G.lv.id });
+  kick();
+}
+
+// =====================================================================
+// ÖĞRETİCİ: yeni hareketi tanıtan seviyelerde (ilk kesik, ilk katlama, ilk çapraz katlama) hayalet bir parmak
+// hareketi gösterir; katlamada kâğıt da parmağı izler. Yazı yok; oyuncu tahtaya dokununca kaybolur.
+// Seviye çözülünce bir daha gösterilmez.
+// =====================================================================
+const COACH = ['1-1', '1-2', '3-1'];
+const COACH_MS = [300, 1000, 500, 400, 600];   // belir · götür · bekle · geri · ara
+function coachFor() {
+  const sol = G.lv.solution;
+  if (!sol.folds.length) return { mode: 'cut', from: sol.cut[0], to: sol.cut[1], el: 0 };
+  // katlanan taraftaki en büyük parçanın ortasını tut, doğrunun öbür yanındaki yansımasına götür
+  const [code, s] = sol.folds[0], l = E.lineOf(code);
+  const mov = E.fold(G.layers, l, s).filter(L => L.from);
+  const big = mov.reduce((a, L) => (E.area(L.from) > E.area(a.from) ? L : a));
+  const from = big.from.reduce((a, p) => [a[0] + p[0] / big.from.length, a[1] + p[1] / big.from.length], [0, 0]);
+  return { mode: 'fold', from, to: E.ap(E.refl(l), from), el: 0 };
+}
+// parmağın şu anki yeri ve görünürlüğü
+function coachState(K) {
+  const [a, b, c, d, e] = COACH_MS, T = K.el % (a + b + c + d + e);
+  const lerp = x => [K.from[0] + (K.to[0] - K.from[0]) * x, K.from[1] + (K.to[1] - K.from[1]) * x];
+  if (T < a) return { p: K.from, alpha: T / a, down: false };
+  if (T < a + b) return { p: lerp(ease((T - a) / b)), alpha: 1, down: true };
+  if (T < a + b + c) return { p: K.to, alpha: 1, down: true };
+  if (T < a + b + c + d) { const x = (T - a - b - c) / d; return { p: lerp(1 - ease(x)), alpha: 1 - x, down: false }; }
+  return null;
+}
+const coachOn = () => G.coach && G.phase === 'play' && !G.drag && !G.preview && G.mode === G.coach.mode;
+function restart(instant) {
+  G.layers = E.flat(); G.folds = 0; G.hist = []; G.foldLines = []; G.onTrack = true; G.step = 0;
+  G.phase = 'play'; G.drag = null; G.preview = null; G.hint = null; G.anim = null; G.result = null; G.msg = null;
+  setMode(G.lv.best === 0 ? 'cut' : 'fold');
+  updateCands();
+  G.viewTo = viewFor(G.layers.map(L => L.poly));
+  if (instant || !G.view) G.view = { ...G.viewTo };
+  $('targetBox').classList.remove('hit');
+  drawTarget(); ui(); kick();
+}
+function updateCands() { G.cands = E.outlineLines(G.layers, G.outline); }
+function setMode(m) {
+  G.mode = m;
+  $('modeFold').classList.toggle('on', m === 'fold');
+  $('modeCut').classList.toggle('on', m === 'cut');
+}
+function say(key, p, warn) { G.msg = key ? t(key, p) : null; G.warn = !!warn; ui(); }
+
+function ui() {
+  const f = $('folds');
+  if (f.textContent !== String(G.folds)) { f.textContent = G.folds; f.classList.remove('bump'); void f.offsetWidth; f.classList.add('bump'); }
+  $('par').textContent = t('game.par', { n: G.lv.best });
+  $('par').classList.toggle('over', G.folds > G.lv.best);
+  const st = $('status');
+  st.textContent = G.msg ?? (aligned() ? t('status.aligned')
+    : G.folds === 0 && G.lv.intro ? t('intro.' + G.lv.intro)
+    : G.mode === 'cut' ? t('status.cut') : t(printed() ? 'status.goal' : 'status.goalBlind'));
+  st.classList.toggle('warn', !!G.msg && G.warn);
+  const busy = G.phase !== 'play';
+  $('modeFold').disabled = $('modeCut').disabled = busy;
+  $('undoBtn').disabled = G.phase === 'anim' || (G.phase === 'play' && !G.hist.length);
+  $('resetBtn').disabled = G.phase === 'anim' || (G.phase === 'play' && !G.hist.length);
+  $('hintBtn').disabled = busy;
+  const hl = Hints.left(G.lv.ch), hc = $('hintCnt');
+  hc.textContent = hl > 0 ? hl : '▶'; hc.classList.toggle('ad', hl === 0);
+  const nx = nextPlayable(cur.c, cur.i);
+  $('nextBtn').style.visibility = nx >= 0 && levelOpen(cur.c, nx) ? 'visible' : 'hidden';
+}
+
+// =====================================================================
+// GÖRÜNÜM: kâğıdın tamamı hep görünür ve yerinde durur (katlayınca yakınlaşmaz);
+// yalnız kâğıt karenin dışına taşarsa görünüm yumuşakça genişler.
+// =====================================================================
+function viewFor(polys) {
+  const bb = E.bboxOf(polys.concat([E.square()]));
+  const size = Math.max(bb.maxx - bb.minx, bb.maxy - bb.miny) + 1.6;
+  return { x0: (bb.minx + bb.maxx) / 2 - size / 2, y0: (bb.miny + bb.maxy) / 2 - size / 2, size };
+}
+const board = $('board'), ctx = board.getContext('2d');
+const tcv = $('targetCv'), tctx = tcv.getContext('2d');
+let DPR = 1, BW = 1;
+function resize() {
+  DPR = window.devicePixelRatio || 1;
+  BW = board.clientWidth || 300;
+  board.width = Math.round(BW * DPR); board.height = Math.round(BW * DPR);
+  const tw = tcv.clientWidth || 84;
+  tcv.width = Math.round(tw * DPR); tcv.height = Math.round(tw * DPR);
+  if (G.lv) { drawTarget(); render(); }
+}
+const s2w = e => {
+  const r = board.getBoundingClientRect(), v = G.view;
+  return [(e.clientX - r.left) / r.width * v.size + v.x0, (e.clientY - r.top) / r.height * v.size + v.y0];
+};
+
+// =====================================================================
+// ÇİZİM
+// Kâğıt "yaprak" listesi olarak çizilir: { poly (şu anki yer), M (orijinalden şu anki yere dönüşüm), back }.
+// M sayesinde hedef çizgisi kâğıda basılı gibi kâğıtla birlikte katlanır.
+// =====================================================================
+const C = {};
+function readColors() {
+  const cs = getComputedStyle(document.documentElement);
+  for (const k of ['bg', 'paper', 'ink', 'accent', 'grid', 'muted', 'shadow', 'shadow-hit', 'on-accent']) C[k] = cs.getPropertyValue('--' + k).trim();
+}
+function rgba(hex, a) {
+  if (!hex.startsWith('#')) return hex;
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${a})`;
+}
+function pathPolys(c, polys) {
+  c.beginPath();
+  for (const p of polys) { c.moveTo(p[0][0], p[0][1]); for (let i = 1; i < p.length; i++) c.lineTo(p[i][0], p[i][1]); c.closePath(); }
+}
+// doğruyu görünümün kenarına kadar uzat
+function strokeLine(l, color, w, dash, u) {
+  const dx = l.b[0] - l.a[0], dy = l.b[1] - l.a[1], L = Math.hypot(dx, dy) || 1, k = 60 / L;
+  ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = w * u; ctx.setLineDash(dash.map(d => d * u)); ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(l.a[0] - dx * k, l.a[1] - dy * k); ctx.lineTo(l.a[0] + dx * k, l.a[1] + dy * k); ctx.stroke(); ctx.restore();
+}
+function strokeOutline(color, w) {
+  ctx.beginPath();
+  for (const [a, b] of G.outline) { ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); }
+  ctx.strokeStyle = color; ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.stroke();
+}
+const applyM = M => ctx.transform(M[0], M[3], M[1], M[4], M[2], M[5]);
+
+// Yapraklar alttan üste. Her kat hafif gölge bırakır (çok kat = daha koyu). Basılı şekil: soluk dolgu + mürekkep çizgi.
+// En sonda alttaki katların çizgileri ince kâğıttan sızar gibi soluk görünür (hizalanınca tek koyu çizgi olur).
+function drawSheets(items, u, opt = {}) {
+  if (!items.length) return;
+  ctx.save();
+  ctx.shadowColor = C.shadow; ctx.shadowBlur = 10 * DPR; ctx.shadowOffsetY = 2 * DPR;
+  pathPolys(ctx, items.map(i => i.poly)); ctx.fillStyle = C.paper; ctx.fill();
+  ctx.restore();
+  ctx.lineJoin = 'round';
+  const print = printed() && !opt.noPrint;
+  for (const it of items) {
+    pathPolys(ctx, [it.poly]);
+    ctx.fillStyle = it.fill || C.paper; ctx.fill();
+    ctx.fillStyle = rgba(C.ink, it.back ? 0.09 : 0.04); ctx.fill();
+    if (print && it.M) {
+      ctx.save(); pathPolys(ctx, [it.poly]); ctx.clip(); applyM(it.M);
+      pathPolys(ctx, G.lv.target); ctx.fillStyle = rgba(it.fill ? C['on-accent'] : C.ink, 0.08); ctx.fill();
+      strokeOutline(rgba(it.fill ? C['on-accent'] : C.ink, 0.85), 1.7 * u);
+      ctx.restore();
+    }
+    pathPolys(ctx, [it.poly]); ctx.strokeStyle = opt.stroke || rgba(C.ink, 0.5); ctx.lineWidth = (opt.lw || 1.2) * u; ctx.stroke();
+  }
+  if (print && items.length > 1) for (const it of items) {
+    if (!it.M) continue;
+    ctx.save(); pathPolys(ctx, [it.poly]); ctx.clip(); applyM(it.M);
+    strokeOutline(rgba(C.ink, 0.22), 1.3 * u);
+    ctx.restore();
+  }
+}
+const sheetsOf = layers => layers.map(L => ({ poly: L.poly, M: E.cur(L) }));
+
+// Doğru etrafında döndürme (t=0 yerinde, t=1 yansımış): dik bileşen cos(πt) ile küçülür. Afin bir dönüşüm.
+function rotM(l, t) {
+  const dx = l.b[0] - l.a[0], dy = l.b[1] - l.a[1], L = Math.hypot(dx, dy), nx = -dy / L, ny = dx / L;
+  const k = 1 - Math.cos(Math.PI * t), na = nx * l.a[0] + ny * l.a[1];
+  return [1 - k * nx * nx, -k * nx * ny, k * nx * na, -k * nx * ny, 1 - k * ny * ny, k * ny * na];
+}
+const ease = x => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+const easeOut = x => 1 - Math.pow(1 - x, 3);
+// katlanmış katman listesinden yapraklar; katlananlar "from" konumundan R ile döndürülmüş (t<1) ya da yerinde (t=1)
+function foldSheets(nl, line, t) {
+  const stay = nl.filter(L => !L.from), mov = nl.filter(L => L.from);
+  const items = stay.map(L => ({ poly: L.poly, M: E.cur(L) }));
+  if (t >= 1) return items.concat(mov.map(L => ({ poly: L.poly, M: E.cur(L), back: true })));
+  const R = rotM(line, t);
+  return items.concat(mov.map(L => ({ poly: L.from.map(p => E.ap(R, p)), M: E.comp(R, L.Ms[L.Ms.length - 2]), back: t > 0.5 })));
+}
+
+function render() {
+  if (!G.view || !G.lv) return;
+  const W = board.width, v = G.view, k = W / v.size, u = DPR / k;
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, W, W);
+  ctx.setTransform(k, 0, 0, k, -v.x0 * k, -v.y0 * k);
+
+  // ızgara noktaları (katlama ve kesik bunlara oturur)
+  ctx.fillStyle = C.grid;
+  for (let x = Math.ceil(v.x0); x <= v.x0 + v.size; x++) for (let y = Math.ceil(v.y0); y <= v.y0 + v.size; y++) {
+    ctx.beginPath(); ctx.arc(x, y, 1.5 * u, 0, Math.PI * 2); ctx.fill();
+  }
+  // orijinal kâğıdın yeri (kesikli)
+  ctx.save(); ctx.setLineDash([4 * u, 4 * u]); ctx.strokeStyle = rgba(C.ink, 0.22); ctx.lineWidth = u;
+  pathPolys(ctx, [E.square()]); ctx.stroke(); ctx.restore();
+
+  const A = G.anim;
+  if (A && A.type === 'settle') {
+    drawSheets(foldSheets(A.frame, A.lineT, 1), u);
+    return;
+  }
+  if (A && A.type === 'cancel') {
+    drawSheets(foldSheets(A.F.live, A.F.lineC, 1 - easeOut(A.t)), u);
+    return;
+  }
+  if (A && A.type === 'unfold') return drawUnfold(A, u);
+  if (G.phase === 'result') return drawResult(u);
+
+  const K = coachOn() ? coachState(G.coach) : null;
+  const P = G.preview || (K && G.coach.mode === 'fold' && K.down ? foldFromDrag(G.coach.from, K.p) : null);
+  if (P && P.live) {
+    // katlama: kâğıt parmağı izler (kesintisiz doğru), eski yeri kesikli; bırakınca oturacağı ızgara doğrusu kesikli kırmızı
+    drawSheets(P.live.filter(L => !L.from).map(L => ({ poly: L.poly, M: E.cur(L) })), u);
+    ctx.save(); ctx.setLineDash([3 * u, 3 * u]); ctx.strokeStyle = rgba(C.ink, 0.3); ctx.lineWidth = u;
+    pathPolys(ctx, P.live.filter(L => L.from).map(L => L.from)); ctx.stroke(); ctx.restore();
+    ctx.save(); ctx.globalAlpha = 0.93;
+    drawSheets(P.live.filter(L => L.from).map(L => ({ poly: L.poly, M: E.cur(L), back: true })), u, { stroke: C.accent, lw: 1.4 });
+    ctx.restore();
+    if (P.ok) strokeLine(P.line, C.accent, 1.6, [6, 5], u);
+  } else {
+    drawSheets(sheetsOf(G.layers), u);
+  }
+
+  // ipucu: katlanacak taraf + kesikli doğru, ya da kesik doğrusu
+  if (G.hint && !P) {
+    if (G.hint.type === 'fold') {
+      const side = G.layers.map(L => E.clip(L.poly, G.hint.line, G.hint.s)).filter(p => E.area(p) > 1e-7);
+      pathPolys(ctx, side); ctx.fillStyle = rgba(C.accent, 0.16); ctx.fill();
+      strokeLine(G.hint.line, C.accent, 2, [7, 5], u);
+    } else {
+      strokeLine(G.hint.line, C.accent, 2, [7, 5], u);
+    }
+  }
+  // kesik çizerken: parmağı izleyen çizgi; hedef çizgisine yakınsa ona yapışır (mıknatıs)
+  const D = G.drag;
+  if (D && G.mode === 'cut' && Math.hypot(D.b[0] - D.a[0], D.b[1] - D.a[1]) > 0.05) {
+    if (D.mag) {
+      strokeLine(D.mag, C.accent, 2.4, [], u);
+    } else {
+      strokeLine(D, rgba(C.accent, 0.3), 1.1, [4, 4], u);
+      ctx.save(); ctx.strokeStyle = C.accent; ctx.lineWidth = 2.2 * u; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(D.a[0], D.a[1]); ctx.lineTo(D.b[0], D.b[1]); ctx.stroke(); ctx.restore();
+    }
+  }
+  if (K) drawCoach(K, u);
+}
+function drawCoach(K, u) {
+  const { p, alpha, down } = K, f = G.coach.from;
+  ctx.save(); ctx.globalAlpha = alpha;
+  if (G.coach.mode === 'cut' && (down || alpha < 1)) {
+    ctx.strokeStyle = C.accent; ctx.lineWidth = 2.2 * u; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(f[0], f[1]); ctx.lineTo(p[0], p[1]); ctx.stroke();
+  }
+  // parmak: yarı saydam daire; basılıyken biraz küçük ve koyu
+  const r = down ? 0.36 : 0.44;
+  ctx.beginPath(); ctx.arc(p[0], p[1], r, 0, Math.PI * 2);
+  ctx.fillStyle = rgba(C.ink, down ? 0.22 : 0.12); ctx.fill();
+  ctx.strokeStyle = rgba(C.ink, 0.55); ctx.lineWidth = 1.5 * u; ctx.stroke();
+  ctx.restore();
+}
+
+// Açılma: katlamalar sondan başa geri alınır. j. adımda Ms[j] ≠ Ms[j−1] olan parçalar j. doğru etrafında döner.
+const sameM = (a, b) => a.every((x, i) => Math.abs(x - b[i]) < 1e-9);
+function drawUnfold(A, u) {
+  const j = A.j, tt = ease(A.t);
+  const still = [], moving = [];
+  for (const pc of A.pieces) {
+    const M = pc.Ms[j], item = { poly: pc.orig.map(p => E.ap(M, p)), M, fill: pc.piece ? C.accent : null };
+    if (A.pre || j === 0 || sameM(pc.Ms[j], pc.Ms[j - 1])) { still.push(item); continue; }
+    const R = rotM(G.foldLines[j - 1], tt);
+    moving.push({ ...item, poly: item.poly.map(p => E.ap(R, p)), M: E.comp(R, M), back: tt < 0.5 });
+  }
+  drawSheets(still, u);
+  drawSheets(moving, u);
+  if (A.pre) strokeLine(A.line, C.accent, 1.4, [], u);
+}
+
+function drawResult(u) {
+  const R = G.result;
+  // açılmış kâğıt: parçalar kat izleriyle birlikte; çıkan parça vurgulu
+  drawSheets(R.rest.map(p => ({ poly: p.orig, M: E.ID })), u, { stroke: rgba(C.ink, 0.2), lw: 1 });
+  ctx.save();
+  if (R.win) { ctx.shadowColor = C['shadow-hit']; ctx.shadowBlur = 14 * DPR; ctx.shadowOffsetY = 4 * DPR; }
+  pathPolys(ctx, R.piece.map(p => p.orig)); ctx.fillStyle = C.accent; ctx.fill();
+  ctx.restore();
+  pathPolys(ctx, [E.square()]); ctx.strokeStyle = rgba(C.ink, 0.6); ctx.lineWidth = 1.3 * u; ctx.stroke();
+  if (!R.win) {
+    // hedef: kesikli mürekkep (basılı çizgi de görünsün diye parçanın üstünde)
+    pathPolys(ctx, G.lv.target); ctx.fillStyle = rgba(C.ink, 0.12); ctx.fill();
+    ctx.save(); ctx.setLineDash([5 * u, 4 * u]); ctx.strokeStyle = C.ink; ctx.lineWidth = 1.8 * u; ctx.stroke(); ctx.restore();
+  }
+}
+
+function drawTarget() {
+  const W = tcv.width; tctx.setTransform(1, 0, 0, 1, 0, 0); tctx.clearRect(0, 0, W, W);
+  if (!G.lv) return;
+  const pad = 3 * DPR, k = (W - 2 * pad) / E.N;
+  tctx.setTransform(k, 0, 0, k, pad, pad);
+  pathPolys(tctx, [E.square()]); tctx.fillStyle = C.bg; tctx.fill();
+  pathPolys(tctx, G.lv.target); tctx.fillStyle = C.ink; tctx.fill();
+  pathPolys(tctx, [E.square()]); tctx.strokeStyle = C.grid; tctx.lineWidth = DPR / k; tctx.stroke();
+}
+
+// =====================================================================
+// ANİMASYON DÖNGÜSÜ: görünüm geçişi + oturma / geri dönme / açılma
+// =====================================================================
+let raf = 0, lastT = 0;
+function kick() { if (!raf) { lastT = performance.now(); raf = requestAnimationFrame(loop); } }
+function loop(now) {
+  raf = 0;
+  const dt = Math.min(50, now - lastT); lastT = now;
+  let busy = false;
+  if (G.view && G.viewTo) {
+    const a = 1 - Math.exp(-dt / 110);
+    let d = 0;
+    for (const k of ['x0', 'y0', 'size']) { G.view[k] += (G.viewTo[k] - G.view[k]) * a; d = Math.max(d, Math.abs(G.viewTo[k] - G.view[k])); }
+    if (d > 0.002) busy = true; else Object.assign(G.view, G.viewTo);
+  }
+  if (coachOn()) { G.coach.el += dt; busy = true; }
+  const A = G.anim;
+  if (A) {
+    busy = true;
+    A.el += dt;
+    if (A.type === 'settle') {
+      A.t = Math.min(1, A.el / SETTLE_MS);
+      stepSettle(A);
+      if (A.t >= 1) { G.anim = null; A.done(); }
+    } else if (A.type === 'cancel') {
+      A.t = Math.min(1, A.el / CANCEL_MS);
+      if (A.t >= 1) { G.anim = null; A.done(); }
+    } else if (A.type === 'unfold') {
+      if (A.pre) { if (A.el >= CUT_PAUSE_MS) { A.pre = false; A.el = 0; if (A.j > 0) Fx.unfold(); } }
+      else {
+        A.t = Math.min(1, A.el / UNFOLD_MS);
+        if (A.t >= 1) { A.j--; A.t = 0; A.el = 0; if (A.j > 0) Fx.unfold(); }
+        if (A.j <= 0) { G.anim = null; A.done(); }
+      }
+    }
+  }
+  render();
+  if (busy) raf = requestAnimationFrame(loop);
+}
+
+// =====================================================================
+// HAMLELER
+// =====================================================================
+function pushHist() { G.hist.push({ layers: G.layers, folds: G.folds, foldLines: G.foldLines, onTrack: G.onTrack, step: G.step }); }
+
+// Katlama doğrusu ailesi ve konumu: tür 'x' | 'y' | 'x+y' | 'x-y', değer k (kesirli olabilir: parmağı izlerken)
+function lineAt(type, k) {
+  switch (type) {
+    case 'x': return { a: [k, 0], b: [k, 1] };
+    case 'y': return { a: [0, k], b: [1, k] };
+    case 'x+y': return { a: [k, 0], b: [k - 1, 1] };
+    default: return { a: [k, 0], b: [k + 1, 1] };
+  }
+}
+// Sürüklemeden katlama: P (tutulan yer) parmağa (Q) götürülüyor. Doğru PQ'nun orta dikmesi; yön 45°'nin katına yuvarlanır.
+// Konum iki türlü: lineC parmağı tam izler (önizleme), line en yakın ızgara doğrusu (bırakınca oraya oturur).
+// Katlanan taraf, tutulan yerin tarafı.
+function foldFromDrag(P, Q) {
+  const vx = Q[0] - P[0], vy = Q[1] - P[1];
+  if (Math.hypot(vx, vy) < 0.2) return null;
+  const oct = ((Math.round(Math.atan2(vy, vx) / (Math.PI / 4)) % 8) + 8) % 8;
+  let type, val;
+  if (oct === 0 || oct === 4) { type = 'x'; val = P[0] + vx / 2; }
+  else if (oct === 2 || oct === 6) { type = 'y'; val = P[1] + vy / 2; }
+  else if (oct === 1 || oct === 5) { type = 'x+y'; val = P[0] + P[1] + (vx + vy) / 2; }
+  else { type = 'x-y'; val = P[0] - P[1] + (vx - vy) / 2; }
+  const k = Math.round(val), code = type + '=' + k;
+  const lineC = lineAt(type, val), line = lineAt(type, k);
+  const sC = E.sideOf(lineC, P), s = E.sideOf(line, P);
+  const live = sC && E.splits(G.layers, lineC, 1e-3) ? E.fold(G.layers, lineC, sC) : null;
+  const ok = !!s && E.splits(G.layers, line);
+  return { type, val, k, code, lineC, line, sC, s, live, ok, layers: ok ? E.fold(G.layers, line, s) : null };
+}
+
+// Bırakınca: kâğıt parmağın bıraktığı yerden en yakın ızgara doğrusuna kayarak oturur, sonra katlama kaydedilir.
+function releaseFold(F) {
+  G.phase = 'anim'; G.hint = null; G.msg = null;
+  if (F.sC !== F.s || Math.abs(F.val - F.k) < 1e-3) { commitFold(F); return; }
+  G.anim = { type: 'settle', F, t: 0, el: 0, frame: F.live, lineT: F.lineC, done() { commitFold(F); } };
+  ui(); kick();
+}
+function stepSettle(A) {
+  const F = A.F, val = F.val + (F.k - F.val) * easeOut(A.t), l = lineAt(F.type, val);
+  if (E.splits(G.layers, l, 1e-3)) { A.lineT = l; A.frame = E.fold(G.layers, l, F.s); }
+}
+function commitFold(F) {
+  pushHist();
+  if (G.onTrack) {
+    const sol = G.lv.solution.folds[G.step];
+    if (sol && sol[0] === F.code && sol[1] === F.s) G.step++; else G.onTrack = false;
+  }
+  const was = aligned();
+  G.layers = F.layers; G.folds++; G.foldLines = G.foldLines.concat([F.line]);
+  G.phase = 'play'; G.anim = null;
+  updateCands();
+  G.viewTo = viewFor(G.layers.map(L => L.poly));
+  if (aligned() && !was) { flash('modeCut'); Fx.fold(); setTimeout(() => Fx.aligned(), 140); } else Fx.fold();
+  ui(); kick();
+}
+// Geçersiz yerde bırakıldı: kalkan kâğıt geri iner
+function cancelFold(F) {
+  G.phase = 'anim';
+  G.anim = { type: 'cancel', F, t: 0, el: 0, done() { G.phase = 'play'; ui(); } };
+  Fx.back(); say('status.noSplit', null, true); kick();
+}
+
+// Kesik mıknatısı: çizilen çizginin iki ucu da bir hedef çizgisine yakın ve yönü uyuyorsa ona yapışır
+function magnetFor(a, b) {
+  const L = Math.hypot(b[0] - a[0], b[1] - a[1]);
+  if (L < 0.3) return null;
+  let best = null, bs = Infinity;
+  for (const c of G.cands) {
+    const cl = Math.hypot(c.b[0] - c.a[0], c.b[1] - c.a[1]);
+    const sin = Math.abs((b[0] - a[0]) * (c.b[1] - c.a[1]) - (b[1] - a[1]) * (c.b[0] - c.a[0])) / (L * cl);
+    if (sin > MAGNET_SIN) continue;
+    const da = Math.abs(E.sideVal(c, a)) / cl, db = Math.abs(E.sideVal(c, b)) / cl;
+    if (da > MAGNET || db > MAGNET) continue;
+    if (da + db < bs) { bs = da + db; best = c; }
+  }
+  return best;
+}
+
+function doCut(l) {
+  pushHist();
+  const sides = E.cut(G.layers, l);
+  const cmp = sides.map(s => E.compare(s.map(p => p.orig), G.lv.target));
+  // çıkan parça: hedefe daha çok benzeyen taraf
+  const k = cmp[0].score >= cmp[1].score ? 0 : 1;
+  const win = cmp[k].exact;
+  const pieces = sides[k].map(p => ({ ...p, piece: true })).concat(sides[1 - k].map(p => ({ ...p, piece: false })));
+  G.result = { piece: sides[k], rest: sides[1 - k], win, score: cmp[k].score };
+  G.hint = null; G.msg = null; G.phase = 'anim';
+  Fx.cut();
+  G.anim = { type: 'unfold', pieces, j: G.folds, t: 0, el: 0, pre: true, line: l,
+    done() { G.phase = 'result'; G.viewTo = viewFor([E.square()]); finishCut(); } };
+  ui(); kick();
+}
+
+function finishCut() {
+  const R = G.result;
+  if (R.win) {
+    const s = starsFor(G.folds, G.lv.best);
+    Prog.save(G.lv.id, s, G.folds);
+    track('level_win', { level: G.lv.id, folds: G.folds, stars: s });
+    NativeAds.warm();
+    $('targetBox').classList.add('hit');
+    Fx.win();
+    say('status.solved');
+    setTimeout(showResult, 900);
+  } else {
+    Fx.lose();
+    track('level_lose', { level: G.lv.id, folds: G.folds });
+    say('status.close', { n: Math.floor(R.score * 100) }, true);
+    setTimeout(showResult, 1100);
+  }
+}
+
+function undo() {
+  if (G.phase === 'anim' || !G.hist.length) return;
+  $('resultModal').classList.remove('show');
+  const h = G.hist.pop();
+  Fx.undo();
+  Object.assign(G, h);
+  G.phase = 'play'; G.result = null; G.hint = null; G.msg = null; G.preview = null;
+  $('targetBox').classList.remove('hit');
+  updateCands();
+  G.viewTo = viewFor(G.layers.map(L => L.poly));
+  ui(); kick();
+}
+function reset() {
+  if (G.phase === 'anim' || (!G.hist.length && G.phase === 'play')) return;
+  $('resultModal').classList.remove('show');
+  restart(false);
+}
+
+// İpucu: çözüm yolundaysa kayıtlı çözümün sıradaki adımı; değilse bu durumdan kısa bir arama.
+function hint() {
+  if (G.phase !== 'play') return;
+  G.coach = null;
+  let step = null;
+  const sol = G.lv.solution;
+  if (G.onTrack) {
+    step = G.step < sol.folds.length ? { fold: sol.folds[G.step] } : { cut: sol.cut };
+  } else {
+    const r = E.minFolds(G.lv.target, HINT_DEPTH, G.layers);
+    if (r) step = r.folds.length ? { fold: r.folds[0] } : { cutLine: r.cut };
+  }
+  if (!step) { Fx.nope(); say('hint.offTrack', null, true); flash('undoBtn'); return false; }
+  Fx.hint();
+  if (step.fold) {
+    G.hint = { type: 'fold', line: E.lineOf(step.fold[0]), s: step.fold[1] };
+    if (G.mode !== 'fold') { setMode('fold'); flash('modeFold'); }
+    say('hint.fold');
+  } else {
+    const line = step.cutLine || { a: step.cut[0], b: step.cut[1] };
+    G.hint = { type: 'cut', line };
+    if (G.mode !== 'cut') { setMode('cut'); flash('modeCut'); }
+    say('hint.cut');
+  }
+  kick();
+  return true;
+}
+// İpucu düğmesi: ipucu zaten gösteriliyorsa yeniden ücret yok; ücretsiz hak varsa kullan, yoksa videoyla +1.
+function requestHint() {
+  if (G.phase !== 'play') return;
+  if (G.hint) { flash(G.hint.type === 'fold' ? 'modeFold' : 'modeCut'); return; }
+  const ch = G.lv.ch;
+  if (Hints.left(ch) > 0) { if (hint()) { Hints.use(ch); track('hint', { level: G.lv.id, free: 1 }); } ui(); return; }
+  Ads.rewarded(t('ad.hintMsg'), ok => {
+    if (!ok || G.phase !== 'play') return;
+    hint(); track('hint', { level: G.lv.id, free: 0 }); ui();
+  });
+}
+function flash(id) { const b = $(id); b.classList.remove('hinted'); void b.offsetWidth; b.classList.add('hinted'); }
+
+// =====================================================================
+// DOKUNMA
+// Katla kipi: kâğıdı tut, sürükle → kâğıt parmağı izler; bırakınca en yakın ızgara doğrusuna oturur.
+// Kes kipi: parmağı izleyen çizgi; hedef çizgisine yakınsa yapışır, değilse uçlar ızgara noktalarına oturur.
+// =====================================================================
+const snap = p => [Math.round(p[0]), Math.round(p[1])];
+board.addEventListener('pointerdown', e => {
+  if (G.phase !== 'play' || G.drag) return;
+  G.coach = null;
+  const w = s2w(e);
+  if (G.mode === 'fold') {
+    if (E.topLayerAt(G.layers, w) < 0) return;
+    G.drag = { P: w };
+    Fx.grab();
+  } else {
+    G.drag = { a: w, b: w, mag: null };
+  }
+  try { board.setPointerCapture(e.pointerId); } catch (_) {}
+  kick();
+});
+board.addEventListener('pointermove', e => {
+  if (!G.drag) return;
+  const w = s2w(e);
+  if (G.mode === 'fold') {
+    const F = foldFromDrag(G.drag.P, w);
+    const prev = G.preview;
+    G.preview = F;
+    if (F && F.ok && (!prev || !prev.ok || prev.code !== F.code || prev.s !== F.s)) Fx.tick();   // ızgara doğrusu değişti: tık
+  } else {
+    G.drag.b = w;
+    const m = magnetFor(G.drag.a, w);
+    if (m && m !== G.drag.mag) Fx.snap();
+    G.drag.mag = m;
+  }
+  kick();
+});
+function endDrag() {
+  if (!G.drag) return;
+  const d = G.drag; G.drag = null;
+  if (G.mode === 'fold') {
+    const F = G.preview; G.preview = null;
+    if (F && F.ok) releaseFold(F);
+    else if (F && F.live) cancelFold(F);
+    else if (F) { Fx.nope(); say('status.noSplit', null, true); }
+  } else if (Math.hypot(d.b[0] - d.a[0], d.b[1] - d.a[1]) > 0.3) {
+    let l = d.mag;
+    if (!l) { const a = snap(d.a), b = snap(d.b); if (a[0] !== b[0] || a[1] !== b[1]) l = { a, b }; }
+    if (l && E.splits(G.layers, l)) doCut(l); else { Fx.nope(); say('status.cutOff', null, true); }
+  }
+  kick();
+}
+board.addEventListener('pointerup', endDrag);
+board.addEventListener('pointercancel', () => { G.drag = null; G.preview = null; kick(); });
+
+// =====================================================================
+// SONUÇ
+// =====================================================================
+function starsFor(f, best) { return f <= best ? 3 : f === best + 1 ? 2 : 1; }
+function showResult() {
+  if (G.phase !== 'result') return;
+  const R = G.result, nx = nextPlayable(cur.c, cur.i), stars = s => [1, 2, 3].map(k => `<i class="${k <= s ? '' : 'off'}">⭐</i>`).join('');
+  if (R.win) {
+    const s = starsFor(G.folds, G.lv.best);
+    $('resTitle').textContent = t('result.solved');
+    $('resStars').innerHTML = stars(s);
+    $('resSub').textContent = t('result.star' + s);
+    $('resLine').innerHTML = `${t('result.yours', { n: G.folds })} <span>· ${t('result.best', { n: G.lv.best })}</span>`;
+    $('resNext').textContent = t(nx >= 0 ? 'btn.next' : 'btn.chapters');
+    $('resRetry').textContent = t('btn.retry');
+  } else {
+    $('resTitle').textContent = t('result.miss');
+    $('resStars').innerHTML = stars(0);
+    $('resSub').textContent = t('result.missSub', { n: Math.floor(R.score * 100) });
+    $('resLine').innerHTML = `${t('result.yours', { n: G.folds })} <span>· ${t('result.best', { n: G.lv.best })}</span>`;
+    $('resNext').textContent = t('btn.tryAgain');
+    $('resRetry').textContent = t('btn.reset');
+  }
+  $('resultModal').classList.add('show');
+}
+$('resNext').onclick = () => {
+  $('resultModal').classList.remove('show');
+  if (!G.result || !G.result.win) return undo();         // kesikten önceki (katlanmış) hâle dön
+  const nx = nextPlayable(cur.c, cur.i);
+  maybeInterstitial(() => {
+    if (nx >= 0) return play(cur.c, nx);
+    backToMap();
+    if (cur.c + 1 < CH.length && chapterOpen(cur.c + 1)) toast(t('map.opened', { n: CH[cur.c + 1].id }), 3200);
+  });
+};
+$('resRetry').onclick = () => { $('resultModal').classList.remove('show'); restart(false); };
+// pencerenin dışına dokununca kapanır; sonuç tahtada kalır (geri al / baştan ile devam)
+$('resultModal').addEventListener('click', e => { if (e.target === $('resultModal')) $('resultModal').classList.remove('show'); });
+
+let toastTimer = 0;
+function toast(msg, ms = 2400) {
+  const el = $('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), ms);
+}
+
+// =====================================================================
+// OLAYLAR
+// =====================================================================
+$('modeFold').onclick = () => { if (G.phase === 'play') { if (G.mode !== 'fold') Fx.click(); setMode('fold'); G.msg = null; ui(); kick(); } };
+$('modeCut').onclick = () => { if (G.phase === 'play') { if (G.mode !== 'cut') Fx.click(); setMode('cut'); G.msg = null; ui(); kick(); } };
+$('undoBtn').onclick = undo;
+$('resetBtn').onclick = reset;
+$('hintBtn').onclick = requestHint;
+function backToLevels() { G.anim = null; G.phase = 'play'; renderLevels(); show('levels'); }
+function backToMap() { renderMap(); show('map'); }
+$('backBtn').onclick = backToLevels;
+$('nextBtn').onclick = () => { const nx = nextPlayable(cur.c, cur.i); if (nx >= 0 && levelOpen(cur.c, nx)) play(cur.c, nx); };
+$('lvBack').onclick = backToMap;
+
+// ayarlar
+function openModal(id) { $(id).classList.add('show'); }
+function syncToggles() { document.querySelectorAll('[data-toggle]').forEach(b => b.querySelector('.switch').classList.toggle('on', opt(b.dataset.toggle))); }
+function openExternal(url) { if (Native) location.href = url; else window.open(url, '_blank'); }
+$('settingsBtn').onclick = () => { Fx.click(); syncToggles(); Theme.apply(); openModal('settingsModal'); };
+$('langBtn').onclick = () => { Fx.click(); renderLangList(); openModal('langModal'); };
+$('howtoBtn').onclick = () => { Fx.click(); openModal('helpModal'); };
+$('supportBtn').onclick = () => openExternal(`${SITE}/support/#${lang}`);
+$('privacyBtn').onclick = () => openExternal(`${SITE}/privacy/#${lang}`);
+$('privacyChoicesBtn').onclick = () => { if (AdMobP) AdMobP.showPrivacyOptionsForm().catch(() => {}); };
+// sorun bildir: e-posta taslağı; gövdede yalnız sürüm, ekran/seviye, dil, tarayıcı (kişisel veri yok)
+$('reportBtn').onclick = () => {
+  const where = $('game').classList.contains('active') && G.lv ? G.lv.id : $('levels').classList.contains('active') ? 'levels' : 'map';
+  const body = `\n\n---\n${t('app.name')} ${VERSION}\n${where}\n${lang}\n${navigator.userAgent}`;
+  location.href = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(t('report.subject'))}&body=${encodeURIComponent(body)}`;
+};
+// ilerlemeyi sıfırla: iki dokunuş (ilki onay ister). Dil, tema, ses ve titreşim silinmez.
+let resetArmed = false;
+$('resetProgBtn').onclick = () => {
+  if (!resetArmed) {
+    resetArmed = true; $('resetLabel').textContent = t('settings.resetConfirm');
+    setTimeout(() => { resetArmed = false; $('resetLabel').textContent = t('settings.reset'); }, 4000);
+    return;
+  }
+  resetArmed = false;
+  const keep = ['lang', 'theme', 'sound', 'haptic', 'alive', 'hints', 'ad-wins', 'ad-last', 'ad-skip'];
+  for (const k of store.keys()) if (!keep.includes(k)) store.remove(k);
+  Prog.all = {};
+  $('resetLabel').textContent = t('settings.reset');
+  document.querySelectorAll('.modal.show').forEach(m => m.classList.remove('show'));
+  Fx.undo();
+  backToMap();
+  toast(t('settings.resetDone'));
+};
+// pencere içi seçimler: anahtarlar, tema, dil, kapat
+document.addEventListener('click', e => {
+  const tg = e.target.closest('[data-toggle]');
+  if (tg) { const k = tg.dataset.toggle; store.set(k, opt(k) ? '0' : '1'); syncToggles(); if (k === 'sound' && opt('sound')) Fx.unlock(); Fx.click(); if (k === 'haptic') Fx.buzz(12); return; }
+  const th = e.target.closest('[data-theme-opt]');
+  if (th) { store.set('theme', th.dataset.themeOpt); Theme.apply(); Fx.click(); return; }
+  const lg = e.target.closest('[data-lang]');
+  if (lg) { setLang(lg.dataset.lang); Fx.click(); lg.closest('.modal').classList.remove('show'); return; }
+  const cl = e.target.closest('[data-close]');
+  if (cl) { Fx.click(); cl.closest('.modal').classList.remove('show'); return; }
+  // ayar pencerelerinin dışına dokununca kapanır
+  if (e.target.classList.contains('modal') && e.target.id !== 'resultModal') e.target.classList.remove('show');
+});
+window.addEventListener('resize', () => { if ($('game').classList.contains('active')) resize(); });
+
+// Android geri tuşu: en üstteki pencereyi kapatır, yoksa bir önceki ekrana; haritadaysa uygulamayı arka plana alır.
+// Reklam onayı geri tuşuyla kapanır (vazgeç); oynanan animasyon bölünmez.
+if (Native && Native.App) Native.App.addListener('backButton', () => {
+  const m = [...document.querySelectorAll('.modal.show')].pop();
+  if (m) { if (m.id === 'adModal') $('adCancel').click(); else m.classList.remove('show'); return; }
+  if ($('game').classList.contains('active')) return backToLevels();
+  if ($('levels').classList.contains('active')) return backToMap();
+  Native.App.minimizeApp();
+});
+
+// Klavye (Mac/iPad): f katla, c kes, z / Backspace geri al, r baştan, h ipucu, Esc geri
+document.addEventListener('keydown', e => {
+  if (document.querySelector('.modal.show')) { if (e.key === 'Escape') [...document.querySelectorAll('.modal.show')].pop().classList.remove('show'); return; }
+  if (e.repeat) return;
+  const k = e.key.toLowerCase();
+  if (k === 'escape') { if ($('game').classList.contains('active')) backToLevels(); else if ($('levels').classList.contains('active')) backToMap(); e.preventDefault(); return; }
+  if (!$('game').classList.contains('active')) return;
+  if (k === 'f') $('modeFold').click();
+  else if (k === 'c' || k === 'x') $('modeCut').click();
+  else if (k === 'z' || k === 'backspace') undo();
+  else if (k === 'r') reset();
+  else if (k === 'h') requestHint();
+  else return;
+  e.preventDefault();
+});
+
+Theme.apply();
+if (Theme.mq) Theme.mq.addEventListener('change', () => Theme.apply());
+readColors();
+applyI18n();
+restoreFromBackup();
+// Açılış: ilk kez açılıyorsa doğrudan 1-1 (oynayarak öğretir), yoksa bölüm haritası. ?lv=2-3 ile doğrudan seviye.
+fetch('data/levels.json').then(r => r.json()).then(d => {
+  CH = d.chapters;
+  renderMap();
+  const q = new URLSearchParams(location.search).get('lv');
+  const c = CH.findIndex(ch => ch.levels.some(l => l.id === q));
+  if (c >= 0) { cur.c = c; return play(c, CH[c].levels.findIndex(l => l.id === q)); }
+  if (!Object.keys(Prog.all).length) { cur.c = 0; return play(0, 0); }
+  show('map');
+});
+</script>
+</body>
+</html>

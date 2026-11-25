@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024"><rect width="1024" height="1024" fill="#f4efe6"/><g>
+  <rect x="152" y="168" width="720" height="720" rx="110" fill="#2b2622"/>
+  <rect x="152" y="140" width="720" height="720" rx="110" fill="#fbf8f2" stroke="#2b2622" stroke-width="28"/>
+  <clipPath id="c"><rect x="166" y="154" width="692" height="692" rx="96"/></clipPath>
+  <g clip-path="url(#c)" stroke="#2b2622" stroke-opacity=".09" stroke-width="6">
+    <path d="M210 140V860M300 140V860M390 140V860M480 140V860M570 140V860M660 140V860M750 140V860M840 140V860"/>
+    <path d="M152 230H872M152 320H872M152 410H872M152 500H872M152 590H872M152 680H872M152 770H872"/>
+  </g>
+  <path d="M300 160V840M172 680H852" stroke="#2b2622" stroke-width="14" stroke-linecap="round" clip-path="url(#c)"/>
+  <path d="M300 680C420 680 560 640 720 340" fill="none" stroke="#e0625a" stroke-width="40" stroke-linecap="round"/>
+  <rect x="473" y="603" width="50" height="50" rx="8" transform="rotate(45 498 628)" fill="#a9c4ec" stroke="#2b2622" stroke-width="14"/>
+  <circle cx="720" cy="340" r="64" fill="#f4a29b" stroke="#2b2622" stroke-width="20"/>
+  <circle cx="720" cy="340" r="22" fill="#2b2622"/>
+  <circle cx="300" cy="680" r="48" fill="#2b2622"/>
+  <circle cx="314" cy="672" r="10" fill="#fbf8f2"/><circle cx="334" cy="672" r="10" fill="#fbf8f2"/>
+</g></svg>

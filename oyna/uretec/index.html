@@ -1,0 +1,764 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#f3eee2">
+<title>Üreteç</title>
+<style>
+/* ================= YAZI TİPİ: Fraunces (gömülü, Köşeler'le aynı) ================= */
+@font-face { font-family: Fraunces; font-style: normal; font-weight: 400 800; font-display: swap; src: url(fonts/fraunces-latin.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: Fraunces; font-style: normal; font-weight: 400 800; font-display: swap; src: url(fonts/fraunces-latinext.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1E00-1E9F, U+A720-A7FF; }
+@font-face { font-family: Fraunces; font-style: italic; font-weight: 400 800; font-display: swap; src: url(fonts/fraunces-italic-latin.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: Fraunces; font-style: italic; font-weight: 400 800; font-display: swap; src: url(fonts/fraunces-italic-latinext.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1E00-1E9F, U+A720-A7FF; }
+
+/* ================= TEMA =================
+   Kağıt ve mürekkep (Köşeler'in gündüz teması). Tek vurgu rengi koyu kırmızı.
+   Taşlar siyah-beyaz ve numaralı (renk körlüğü dostu). Yerine oturmuş taş mürekkep dolgulu (ters çevrilmiş). */
+:root {
+  --bg: #f3eee2; --paper: #faf6ec; --ink: #1b1a17; --muted: #6d675a; --line: rgba(27, 26, 23, .16); --grid: rgba(27, 26, 23, .42);
+  --accent: #c23a1d;
+  --btn: #1b1a17; --btn-ink: #f3eee2;
+  --rule: 1.5px;
+  --overlay: rgba(27, 26, 23, .38);
+  --serif: Fraunces, Georgia, "Times New Roman", serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font-family: var(--serif);
+  -webkit-user-select: none; user-select: none; overscroll-behavior: none; -webkit-font-smoothing: antialiased; -webkit-touch-callout: none; }
+body::before { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: .5; mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' seed='3'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .45 0 0 0 0 .35 0 0 0 .12 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; padding: 0; }
+
+/* ================= OYUN EKRANI =================
+   Üst çizgi, hedef bandı, tahta, düğmeler ve araçlar aynı genişlikte (--bw). */
+.screen { position: fixed; inset: 0; display: none; flex-direction: column; align-items: center; z-index: 1;
+  padding: calc(env(safe-area-inset-top) + 8px) 16px calc(env(safe-area-inset-bottom) + 10px); overflow-y: auto; }
+.screen.active { display: flex; }
+#game { --bw: min(100%, 420px); }
+
+/* ================= BÖLÜM HARİTASI ve SEVİYE IZGARASI (Köşeler'in .head / .wrap düzeni) ================= */
+.wrap { width: 100%; max-width: 520px; display: flex; flex-direction: column; }
+.head { width: 100%; display: flex; align-items: center; gap: 6px; border-bottom: var(--rule) solid var(--ink); padding-bottom: 6px; min-height: 50px; }
+.head h2 { margin: 0; flex: 1; font-size: 26px; font-weight: 700; letter-spacing: -.5px; }
+.head .tot { font-size: 16px; font-style: italic; color: var(--muted); white-space: nowrap; }
+.head .tot b { color: var(--ink); font-style: normal; }
+.lede { color: var(--muted); font-style: italic; font-size: 15px; margin: 10px 2px 0; }
+
+/* harita: bölümler dikey bir yol üzerinde; amblem = bölümün tipik düğmesinin ok diyagramı (bölümlerin adı yok) */
+.chapters { position: relative; margin-top: 10px; padding-bottom: 10px; }
+.chapters::before { content: ""; position: absolute; left: 38px; top: 46px; bottom: 56px; border-left: 1.5px dashed var(--grid); }
+.chap { display: flex; align-items: center; gap: 16px; width: 100%; text-align: left; padding: 11px 2px; }
+.chap .emb { width: 72px; height: 72px; flex: none; border-radius: 50%; border: var(--rule) solid var(--ink); background: var(--paper);
+  display: grid; place-items: center; position: relative; z-index: 1; box-shadow: 0 0 0 5px var(--bg); }
+.chap .emb::before { content: ""; position: absolute; inset: 3px; border-radius: 50%; border: 1px solid var(--line); }
+.chap .emb svg { width: 80%; height: 80%; overflow: visible; }
+.chap.done .emb { background: var(--ink); color: var(--bg); }
+.chap.done .emb::before { border-color: rgba(243, 238, 226, .25); }
+.chap .txt { flex: 1; min-width: 0; }
+.chap .txt b { display: block; font-size: 21px; letter-spacing: -.3px; }
+.chap .txt span { color: var(--muted); font-size: 14px; font-style: italic; }
+.chap .bar { display: block; height: 3px; background: var(--line); margin-top: 8px; }
+.chap .bar i { display: block; height: 100%; background: var(--ink); }
+.chap .end { width: 22px; height: 22px; flex: none; color: var(--muted); }
+.chap.locked { cursor: default; }
+.chap.locked .emb, .chap.locked .txt { opacity: .42; }
+.chap:not(.locked):active .txt { opacity: .7; }
+
+/* seviye ızgarası */
+.lv-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 16px; }
+.lv { aspect-ratio: 1; border: var(--rule) solid var(--ink); background: var(--paper); position: relative;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; }
+.lv b { font-size: 27px; font-weight: 700; line-height: 1; font-variant-numeric: lining-nums; }
+.lv .st { font-size: 11px; letter-spacing: 2px; color: var(--line); line-height: 1; }
+.lv .st .on { color: var(--accent); }
+.lv.next { background: var(--ink); color: var(--bg); }
+.lv.next .st { color: rgba(243, 238, 226, .3); }
+.lv.locked { border: 1px dashed var(--grid); background: none; color: var(--muted); cursor: default; }
+.lv.locked b { font-weight: 500; opacity: .6; }
+.lv:not(.locked):active { transform: scale(.96); }
+
+.g-top { width: var(--bw); display: flex; align-items: center; gap: 4px; min-height: 50px; border-bottom: var(--rule) solid var(--ink); }
+.g-top .ttl { flex: 1; text-align: center; display: flex; flex-direction: column; line-height: 1.1; }
+.g-top .ttl b { font-size: 22px; letter-spacing: -.3px; }
+.g-top .ttl small { font-size: 13.5px; font-style: italic; color: var(--muted); }
+.icon-btn { width: 44px; height: 44px; display: grid; place-items: center; flex: none; border-radius: 50%; }
+.icon-btn svg { width: 22px; height: 22px; }
+.icon-btn:active { background: var(--line); }
+.icon-btn:disabled { opacity: .25; cursor: default; }
+
+/* hedef (solda, küçük daire) + hamle sayacı (sağda) */
+.band { width: var(--bw); display: flex; align-items: stretch; gap: 14px; margin-top: 12px; }
+.lbl { display: block; font-size: 11.5px; letter-spacing: 2.5px; text-transform: uppercase; font-weight: 700; color: var(--muted); }
+.target { border: var(--rule) solid var(--ink); background: var(--paper); position: relative; display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 8px; }
+.target::before { content: ""; position: absolute; inset: 3px; border: 1px solid var(--line); pointer-events: none; }
+.target svg { width: 84px; height: 84px; display: block; }
+.target.hit { border-color: var(--accent); }
+.target.hit .lbl { color: var(--accent); }
+.counter { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: flex-end; text-align: right; }
+.counter b { font-size: 46px; font-weight: 700; line-height: 1; letter-spacing: -1.5px; font-variant-numeric: lining-nums tabular-nums; }
+.counter b.bump { animation: bump .2s ease-out; }
+.counter small { font-size: 14px; font-style: italic; color: var(--muted); margin-top: 4px; }
+.counter small.over { text-decoration: line-through; }
+@keyframes bump { from { transform: translateY(-3px); opacity: .5; } to { transform: none; opacity: 1; } }
+
+.status { width: var(--bw); text-align: center; color: var(--muted); font-style: italic; font-size: 14.5px; margin: 8px 0 0; min-height: 20px; }
+
+/* tahta: kalan alanın ortasında, kare */
+.stage { flex: 1; width: var(--bw); min-height: 0; display: grid; place-items: center; }
+#board { width: min(100%, 46vh, 400px); aspect-ratio: 1; display: block; overflow: visible; touch-action: manipulation; }
+.ring { fill: none; stroke: var(--ink); stroke-width: .5; }
+.slot { fill: var(--grid); }
+.stone circle { fill: var(--paper); stroke: var(--ink); stroke-width: .9; transition: fill .18s; }
+.stone text { fill: var(--ink); font-family: var(--serif); font-weight: 700; text-anchor: middle; dominant-baseline: central; font-variant-numeric: lining-nums; transition: fill .18s; }
+.stone.home circle { fill: var(--ink); }
+.stone.home text { fill: var(--bg); }
+.stone.win circle { fill: var(--accent); stroke: var(--accent); }
+.stone.win text { fill: #fff; }
+
+/* üreteç düğmeleri: her birinin üstünde ne yaptığını gösteren ok diyagramı */
+.gens { width: var(--bw); display: flex; justify-content: center; gap: 12px; margin: 10px 0 4px; }
+.gen { flex: 0 1 140px; aspect-ratio: 1; border: var(--rule) solid var(--ink); background: var(--paper); position: relative;
+  display: grid; place-items: center; touch-action: none; transition: background .1s, color .1s, transform .1s; }
+.gen::before { content: ""; position: absolute; inset: 3px; border: 1px solid var(--line); pointer-events: none; }
+.gen svg.fwd, .gen svg.rev { width: 84%; height: 84%; display: block; overflow: visible; }
+.gen .key { position: absolute; top: 5px; left: 8px; font-size: 11.5px; font-weight: 700; letter-spacing: 1px; color: var(--muted); }
+.gen.down { transform: scale(.96); }
+.gen.press { background: var(--ink); color: var(--bg); }
+.gen.press .key { color: var(--bg); opacity: .6; }
+.gen .inv-mark { position: absolute; top: 6px; right: 7px; width: 14px; height: 14px; color: var(--muted); }
+.gen svg.rev { display: none; }
+.gen.rev-on svg.fwd { display: none; }
+.gen.rev-on svg.rev { display: block; }
+.gen.rev-on { border-color: var(--accent); color: var(--accent); }
+.gen.press .inv-mark { color: var(--bg); }
+.gen.hinted { animation: glow 1.6s ease-out 2; }
+.gen:disabled { opacity: .4; }
+@keyframes glow { 0%, 55% { box-shadow: 0 0 0 4px var(--accent); } 100% { box-shadow: 0 0 0 0 transparent; } }
+/* diyagram parçaları (renk currentColor: basılınca ters çevrilir) */
+.d-ring { fill: none; stroke: currentColor; stroke-width: 1.2; opacity: .28; }
+.d-dot { fill: currentColor; opacity: .35; }
+.d-dot.top { opacity: .7; }
+.d-move { fill: currentColor; }
+.d-arrow { fill: none; stroke: currentColor; stroke-width: var(--dw, 3.4); stroke-linecap: round; stroke-linejoin: round; }
+.d-head { fill: currentColor; }
+
+/* araçlar */
+.tools { width: var(--bw); display: flex; justify-content: space-between; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line); }
+.tool { flex: 1; padding: 4px; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 13.5px; font-style: italic; white-space: nowrap; }
+.tool svg { width: 22px; height: 22px; }
+.tool:disabled { opacity: .35; cursor: default; }
+/* "İmkânsız": ilk dokunuşta "Emin misin?" (kırmızı), ikincide karar */
+.tool.declare { display: none; }
+.declaring .tool.declare { display: flex; }
+.tool.declare.arm, .tool.declare.hit { color: var(--accent); font-weight: 700; }
+.tool.declare.hinted { animation: glow 1.6s ease-out 2; }
+
+/* ================= PENCERELER ================= */
+.modal { position: fixed; inset: 0; background: var(--overlay); display: none; align-items: flex-end; justify-content: center; z-index: 20; }
+.modal.show { display: flex; }
+.sheet { background: var(--bg); width: 100%; max-width: 520px; max-height: 92%; overflow-y: auto; border-top: 3px double var(--ink);
+  padding: 22px 18px calc(env(safe-area-inset-bottom) + 18px); animation: up .24s ease-out; }
+@media (min-width: 600px) and (min-height: 600px) { .modal { align-items: center; } .sheet { border: var(--rule) solid var(--ink); } }
+@keyframes up { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+.sheet h3 { margin: 0 0 6px; font-size: 26px; font-weight: 700; text-align: center; letter-spacing: -.4px; }
+.primary { width: 100%; background: var(--btn); color: var(--btn-ink); border-radius: 2px; padding: 15px; font-weight: 700; font-size: 19px; margin-top: 10px; }
+.secondary { width: 100%; padding: 14px; border: var(--rule) solid var(--ink); font-weight: 700; font-size: 18px; margin-top: 10px; }
+.primary:active, .secondary:active { opacity: .8; }
+.res-stars { text-align: center; font-size: 34px; letter-spacing: 6px; line-height: 1; margin: 6px 0 4px; }
+.res-stars i { font-style: normal; }
+.res-stars i.off { filter: grayscale(1); opacity: .25; }
+.res-sub { text-align: center; color: var(--muted); font-style: italic; margin: 0 0 12px; }
+.res-line { text-align: center; font-size: 17px; padding: 12px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); margin-bottom: 6px; }
+.res-line span { color: var(--muted); }
+
+#toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 100px); transform: translate(-50%, 20px); opacity: 0;
+  background: var(--btn); color: var(--btn-ink); padding: 11px 18px; max-width: 88vw; text-align: center;
+  pointer-events: none; transition: opacity .2s, transform .2s; z-index: 40; font-size: 15.5px; line-height: 1.4; font-style: italic; }
+#toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* kısa ekran (iPhone SE) */
+@media (max-height: 700px) {
+  .target svg { width: 70px; height: 70px; } .counter b { font-size: 38px; }
+  .gen { flex-basis: 104px; } .status { margin-top: 4px; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+
+<!-- ================= BÖLÜM HARİTASI ================= -->
+<div id="map" class="screen"><div class="wrap">
+  <div class="head"><h2 data-i18n="map.title"></h2><span class="tot" id="mapTot"></span></div>
+  <div class="chapters" id="chapters"></div>
+</div></div>
+
+<!-- ================= SEVİYELER ================= -->
+<div id="levels" class="screen"><div class="wrap">
+  <div class="head">
+    <button class="icon-btn" id="lvBack" aria-label="‹"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <h2 id="lvTitle"></h2><span class="tot" id="lvTot"></span>
+  </div>
+  <p class="lede" id="lvLede"></p>
+  <div class="lv-grid" id="lvGrid"></div>
+</div></div>
+
+<!-- ================= OYUN ================= -->
+<div id="game" class="screen">
+  <div class="g-top">
+    <button class="icon-btn" id="backBtn" aria-label="‹"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <div class="ttl"><b data-i18n="app.name"></b><small id="levelLabel"></small></div>
+    <button class="icon-btn" id="nextBtn" aria-label="›"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button><!-- yalnız açık bir sonraki seviye varsa -->
+  </div>
+
+  <div class="band">
+    <div class="target" id="targetBox"><svg id="targetSvg" viewBox="0 0 100 100"></svg><span class="lbl" data-i18n="game.target"></span></div>
+    <div class="counter"><span class="lbl" data-i18n="game.moves"></span><b id="moves">0</b><small id="par"></small></div>
+  </div>
+
+  <p class="status" id="status"></p>
+  <div class="stage"><svg id="board" viewBox="0 0 100 100"></svg></div>
+
+  <div class="gens" id="gens"></div>
+
+  <div class="tools">
+    <button class="tool" id="undoBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg><span data-i18n="btn.undo"></span></button>
+    <button class="tool" id="resetBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg><span data-i18n="btn.reset"></span></button>
+    <button class="tool declare" id="declareBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M6 18L18 6"/></svg><span id="declareLbl"></span></button>
+    <button class="tool" id="hintBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg><span data-i18n="btn.hint"></span></button>
+  </div>
+</div>
+
+<!-- sonuç -->
+<div class="modal" id="resultModal"><div class="sheet">
+  <h3 id="resTitle"></h3>
+  <div class="res-stars" id="resStars"></div>
+  <p class="res-sub" id="resSub"></p>
+  <div class="res-line" id="resLine"></div>
+  <button class="primary" id="resNext" data-i18n="btn.next"></button>
+  <button class="secondary" id="resRetry"></button>
+</div></div>
+
+<div id="toast"></div>
+
+<script src="engine.js"></script>
+<script src="locales/tr.js"></script>
+<script src="locales/en.js"></script>
+<script>
+'use strict';
+// =====================================================================
+// SABİTLER
+// =====================================================================
+const KEY = 'urt-';
+const E = window.Engine;
+const MOVE_MS = 280;      // hamle animasyonu
+const $ = id => document.getElementById(id);
+const NS = 'http://www.w3.org/2000/svg';
+
+const HOLD_MS = 350;      // ters hamle açık bölümde bu kadar basılı tutmak = tersi
+
+// =====================================================================
+// KAYIT (adım 6'da Köşeler'in Preferences yedekli sarmalayıcısı gelecek)
+// =====================================================================
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(KEY + k); return v === null ? d : v; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(KEY + k, String(v)); } catch (e) {} },
+};
+
+// =====================================================================
+// DİLLER: varsayılan Türkçe (?lang=en ile denenebilir)
+// =====================================================================
+const LOCALES = window.LOCALES || {};
+const lang = (() => { const q = new URLSearchParams(location.search).get('lang'); return LOCALES[q] ? q : (LOCALES[store.get('lang', '')] ? store.get('lang', '') : 'tr'); })();
+document.documentElement.lang = lang;
+function t(key, p) {
+  let s = (LOCALES[lang].strings[key] ?? LOCALES.en.strings[key] ?? key);
+  if (p) s = s.replace(/\{(\w+)\}/g, (m, k) => (k in p ? p[k] : m));
+  return s;
+}
+function applyI18n() { document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); }); document.title = t('app.name'); }
+
+// =====================================================================
+// SVG YARDIMCILARI
+// =====================================================================
+function svg(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+const pathD = pts => 'M' + pts.map(p => p.x.toFixed(2) + ' ' + p.y.toFixed(2)).join('L');
+// yolun sonuna ok ucu (üçgen); yön son ~%15'lik parçadan alınır ki kavisli yolda düzgün dursun
+function arrowHead(pts, size) {
+  const B = pts[pts.length - 1], A = E.pointAt(pts, Math.max(0, 1 - size * 0.9 / E.pathLength(pts)));
+  const dx = B.x - A.x, dy = B.y - A.y, l = Math.hypot(dx, dy) || 1, ux = dx / l, uy = dy / l;
+  const w = size * 0.55;
+  const bx = B.x - ux * size, by = B.y - uy * size;
+  return `${B.x},${B.y} ${bx + uy * w},${by - ux * w} ${bx - uy * w},${by + ux * w}`;
+}
+
+// Ok diyagramı: mini daire + oklar. Her taşın gideceği yer = movePath (tahtadaki animasyonla aynı yol).
+// Hareket eden konumlar dolu nokta, sabit kalanlar soluk; en üst konum hafif belirgin (yön için).
+function drawDiagram(host, L, p) {
+  host.innerHTML = '';
+  const n = L.slots.length;
+  // diyagram tahtadan biraz büyük ölçekte (halka yarıçapı 40): oklar sığsın
+  const k = 42 / Math.max(...L.rings.map(r => r.r + Math.hypot(r.cx - 50, r.cy - 50)));
+  const D = { slots: L.slots.map(s => ({ x: 50 + (s.x - 50) * k, y: 50 + (s.y - 50) * k })), rings: L.rings.map(r => ({ ...r, cx: 50 + (r.cx - 50) * k, cy: 50 + (r.cy - 50) * k, r: r.r * k })) };
+  D.rings.forEach(r => svg('circle', { class: 'd-ring', cx: r.cx, cy: r.cy, r: r.r }, host));
+  const dense = n >= 7;
+  const dotR = dense ? 3.4 : 4.2, gap = dotR + (dense ? 2.2 : 3.2), head = dense ? 8 : 9;
+  host.style.setProperty('--dw', dense ? 3 : 3.4);
+  const C = D.rings[0];
+  for (let i = 0; i < n; i++) {
+    const j = p[i];
+    // Karşılıklı takas (i↔j): tek, çift başlı ok. Kısa (komşu) takas içeri doğru belirgin bir kavisle uzatılır.
+    if (j !== i && p[j] === i) {
+      if (j < i) continue;
+      const A = D.slots[i], B = D.slots[j], len = Math.hypot(B.x - A.x, B.y - A.y);
+      const mx = (A.x + B.x) / 2, my = (A.y + B.y) / 2, ox = mx - C.cx, oy = my - C.cy, ol = Math.hypot(ox, oy) || 1;
+      const ord = C.order, m = ord.length, dd = (ord.indexOf(j) - ord.indexOf(i) + m) % m;
+      const bend = (dd === 1 || dd === m - 1) ? -Math.max(34, len * 0.9) : 0;      // komşu takas: merkeze doğru derin U
+      const Q = { x: mx + ox / ol * bend, y: my + oy / ol * bend };
+      const pts = Array.from({ length: 33 }, (_, k) => { const t = k / 32, u = 1 - t; return { x: u * u * A.x + 2 * u * t * Q.x + t * t * B.x, y: u * u * A.y + 2 * u * t * Q.y + t * t * B.y }; });
+      const tp = E.trimPath(pts, gap + 1, gap + 1);
+      svg('path', { class: 'd-arrow', d: pathD(E.trimPath(tp, 5, 5)) }, host);
+      svg('polygon', { class: 'd-head', points: arrowHead(tp, head) }, host);
+      svg('polygon', { class: 'd-head', points: arrowHead(tp.slice().reverse(), head) }, host);
+      continue;
+    }
+    const pts = E.movePath(D, p, i, 32);
+    if (!pts) continue;
+    const tp = E.trimPath(pts, gap, gap + 1);
+    if (E.pathLength(tp) < 4) continue;
+    svg('path', { class: 'd-arrow', d: pathD(E.trimPath(tp, 0, 5)) }, host);
+    svg('polygon', { class: 'd-head', points: arrowHead(tp, head) }, host);
+  }
+  D.slots.forEach((s, i) => svg('circle', { class: 'd-dot' + (p[i] !== i ? ' d-move' : '') + (i === 0 ? ' top' : ''), cx: s.x, cy: s.y, r: p[i] !== i ? dotR : dotR * 0.7 }, host));
+}
+
+// =====================================================================
+// OYUN DURUMU
+// =====================================================================
+let LV = null;            // levels.json'daki seviye + { ch, layout (geometri), mv (hamleler), dist (BFS) }
+let CH = [];              // levels.json bölümleri
+let cur = { c: 0, i: 0 }; // oynanan seviye (bölüm sırası, seviye sırası)
+let state = [], moves = 0, history = [];
+let over = false;
+let verdict = null;        // "İmkânsız" kararı: null | 'right' | 'wrong'
+let anim = null;          // süren animasyon { raf, finish }
+
+// =====================================================================
+// İLERLEME ve KİLİTLER
+// Seviye, bir öncekini çözünce açılır; bölüm, önceki bölümün bütün seviyeleri çözülünce.
+// Çözülemez ("İmkânsız") seviyeler adım 4'e kadar oynanamaz ve geçilmiş sayılır.
+// ?unlock ile her şey açık (geliştirme).
+// =====================================================================
+const UNLOCK_ALL = new URLSearchParams(location.search).has('unlock');
+const Prog = {
+  all: (() => { try { return JSON.parse(store.get('prog', '{}')) || {}; } catch (e) { return {}; } })(),
+  of(id) { return this.all[id] || null; },
+  save(id, stars, mv) {
+    const o = this.all[id];
+    this.all[id] = { s: Math.max(stars, o ? o.s : 0), m: Math.min(mv, o ? o.m : Infinity) };
+    store.set('prog', JSON.stringify(this.all));
+  },
+};
+const cleared = lv => !!Prog.of(lv.id);
+const levelOpen = (c, i) => UNLOCK_ALL || i === 0 || cleared(CH[c].levels[i - 1]);
+const chapterOpen = c => UNLOCK_ALL || c === 0 || CH[c - 1].levels.every(cleared);
+function chapterStats(c) {
+  const ls = CH[c].levels;
+  return { total: ls.length, done: ls.filter(l => Prog.of(l.id)).length,
+    stars: ls.reduce((s, l) => s + (Prog.of(l.id) ? Prog.of(l.id).s : 0), 0), max: ls.length * 3 };
+}
+// bölümün sıradaki (açık, çözülmemiş) ilk seviyesi
+const nextOf = c => CH[c].levels.findIndex((l, i) => !Prog.of(l.id) && levelOpen(c, i));
+
+function show(name) { document.querySelectorAll('.screen').forEach(el => el.classList.toggle('active', el.id === name)); }
+
+// Amblem: bölümün tipik düğmesinin ok diyagramı (bölümlerin adı yok, onları bu tanıtır)
+const EMBLEM = { 1: ['1-4', 0], 2: ['2-6', 1], 3: ['3-9', 1], 4: ['4-8', 0], 5: ['5-6', 0], 6: ['6-4', 2] };
+function drawEmblem(host, c) {
+  const [id, g] = EMBLEM[CH[c].id] || [CH[c].levels[0].id, 0];
+  const lv = CH[c].levels.find(l => l.id === id) || CH[c].levels[0];
+  drawDiagram(host, E.layoutOf(lv.layout, lv.n), lv.gens[g] || lv.gens[0]);
+  host.style.setProperty('--dw', 5);          // küçük boyutta kalın çizgi
+}
+
+const ICON_CHEV = '<svg class="end" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>';
+const ICON_LOCK = '<svg class="end" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="1.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+
+function renderMap() {
+  const box = $('chapters'); box.innerHTML = '';
+  let st = 0, mx = 0;
+  CH.forEach((ch, c) => {
+    const S = chapterStats(c), open = chapterOpen(c), done = S.done === S.total;
+    st += S.stars; mx += S.max;
+    const b = document.createElement('button');
+    b.className = 'chap' + (open ? '' : ' locked') + (done ? ' done' : '');
+    b.innerHTML = `<span class="emb"></span><span class="txt"><b>${t('map.chapter', { n: ch.id })}</b>` +
+      `<span>${open ? t('map.progress', { a: S.done, b: S.total }) + ' · ★ ' + S.stars + '/' + S.max : t('map.locked')}</span>` +
+      `<span class="bar"><i style="width:${(S.done / S.total * 100).toFixed(1)}%"></i></span></span>` + (open ? ICON_CHEV : ICON_LOCK);
+    drawEmblem(svg('svg', { viewBox: '0 0 100 100' }, b.querySelector('.emb')), c);
+    b.onclick = () => (open ? openChapter(c) : toast(t('map.locked')));
+    box.appendChild(b);
+  });
+  $('mapTot').innerHTML = `★ <b>${st}</b>/${mx}`;
+}
+
+function openChapter(c) { cur.c = c; renderLevels(); show('levels'); }
+
+function renderLevels() {
+  const c = cur.c, ch = CH[c], S = chapterStats(c), nx = nextOf(c);
+  $('lvTitle').textContent = t('map.chapter', { n: ch.id });
+  $('lvTot').innerHTML = `★ <b>${S.stars}</b>/${S.max}`;
+  $('lvLede').textContent = t('map.progress', { a: S.done, b: S.total });
+  const grid = $('lvGrid'); grid.innerHTML = '';
+  ch.levels.forEach((lv, i) => {
+    const b = document.createElement('button'), P = Prog.of(lv.id), open = levelOpen(c, i);
+    b.className = 'lv' + (!open ? ' locked' : i === nx ? ' next' : '');
+    b.innerHTML = `<b>${i + 1}</b><span class="st">${[1, 2, 3].map(k => `<span class="${P && P.s >= k ? 'on' : ''}">★</span>`).join('')}</span>`;
+    b.onclick = () => (open ? play(c, i) : toast(t('map.lockedLevel')));
+    grid.appendChild(b);
+  });
+}
+
+// bölümdeki bir sonraki seviye; yoksa -1
+const nextPlayable = (c, i) => (i + 1 < CH[c].levels.length ? i + 1 : -1);
+
+function play(c, i) {
+  cur = { c, i };
+  const lv = CH[c].levels[i];
+  const mv = E.moves(lv.gens, lv.inverseAllowed);
+  // ipucu için BFS telefonda da çalışır (en çok 40320 durum, ~40 ms); en kısa uzunluk JSON'dan gelir
+  LV = { ...lv, ch: CH[c].id, k: i + 1, layout: E.layoutOf(lv.layout, lv.n), mv, dist: E.bfs(lv.target, mv.map(m => m.p)) };
+  state = LV.start.slice(); moves = 0; history = []; over = false; verdict = null;
+  LV.declare = lv.kind === 'declare';
+  $('game').classList.toggle('declaring', LV.declare);
+  disarm();
+  if (anim) { cancelAnimationFrame(anim.raf); anim = null; }
+  $('levelLabel').textContent = t('game.level', { ch: LV.ch, n: LV.k });
+  $('targetBox').classList.remove('hit');
+  drawTarget();
+  buildBoard();
+  buildGens();
+  render();
+  show('game');
+}
+const replay = () => play(cur.c, cur.i);
+
+// =====================================================================
+// ÇİZİM
+// =====================================================================
+function drawTarget() {
+  const host = $('targetSvg'); host.innerHTML = '';
+  const L = LV.layout, r = E.stoneRadius(L);
+  L.rings.forEach(R => svg('circle', { class: 'ring', cx: R.cx, cy: R.cy, r: R.r }, host));
+  LV.target.forEach((stone, k) => {
+    const g = svg('g', { class: 'stone', transform: `translate(${L.slots[k].x} ${L.slots[k].y})` }, host);
+    svg('circle', { r }, g);
+    svg('text', { 'font-size': r * 1.15 }, g).textContent = stone + 1;
+  });
+}
+
+let stoneEls = [];        // taş numarası → <g>
+function buildBoard() {
+  const host = $('board'); host.innerHTML = '';
+  const L = LV.layout, r = E.stoneRadius(L);
+  L.rings.forEach(R => svg('circle', { class: 'ring', cx: R.cx, cy: R.cy, r: R.r }, host));
+  L.slots.forEach(s => svg('circle', { class: 'slot', cx: s.x, cy: s.y, r: 1.1 }, host));
+  const layer = svg('g', { id: 'stones' }, host);
+  stoneEls = [];
+  for (let s = 0; s < LV.n; s++) {
+    const g = svg('g', { class: 'stone' }, layer);
+    svg('circle', { r }, g);
+    svg('text', { 'font-size': r * 1.15 }, g).textContent = s + 1;
+    stoneEls[s] = g;
+  }
+}
+function placeStones() {
+  state.forEach((stone, k) => {
+    const s = LV.layout.slots[k], g = stoneEls[stone];
+    g.setAttribute('transform', `translate(${s.x} ${s.y})`);
+    g.classList.toggle('home', LV.target[k] === stone);
+  });
+}
+
+function buildGens() {
+  const box = $('gens'); box.innerHTML = '';
+  LV.gens.forEach((p, g) => {
+    const b = document.createElement('button');
+    b.className = 'gen'; b.dataset.g = g;
+    b.setAttribute('aria-label', t('game.btn', { n: g + 1 }));
+    b.innerHTML = `<span class="key">${g + 1}</span>` + (LV.inverseAllowed && !E.same(E.inverse(p), p)
+      ? '<svg class="inv-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.5-5.8"/><path d="M4 3v5h5"/></svg>' : '');
+    // iki diyagram: ileri ve ters (uzun basınca kısa süre ters olan görünür)
+    drawDiagram(svg('svg', { viewBox: '0 0 100 100', class: 'fwd' }, b), LV.layout, p);
+    if (LV.inverseAllowed) drawDiagram(svg('svg', { viewBox: '0 0 100 100', class: 'rev' }, b), LV.layout, E.inverse(p));
+    attachPress(b, g);
+    box.appendChild(b);
+  });
+}
+
+function render() {
+  placeStones();
+  const m = $('moves');
+  if (m.textContent !== String(moves)) { m.textContent = moves; m.classList.remove('bump'); void m.offsetWidth; m.classList.add('bump'); }
+  const par = $('par');
+  par.textContent = t('game.par', { n: LV.declare ? '?' : LV.best });
+  par.classList.toggle('over', !LV.declare && moves > LV.best);
+  $('status').textContent = over ? t(verdict ? 'status.' + verdict : 'status.done') : LV.intro ? t('intro.' + LV.intro) : t(LV.inverseAllowed ? 'status.tapInv' : 'status.tap');
+  $('undoBtn').disabled = over || !history.length;
+  $('resetBtn').disabled = over || !history.length;
+  $('hintBtn').disabled = over;
+  $('declareBtn').disabled = over;
+  const nx = nextPlayable(cur.c, cur.i);
+  $('nextBtn').style.visibility = nx >= 0 && levelOpen(cur.c, nx) ? 'visible' : 'hidden';
+  document.querySelectorAll('.gen').forEach(b => { b.disabled = over; });
+}
+
+let toastTimer = 0;
+function toast(msg, ms = 2400) {
+  const el = $('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), ms);
+}
+
+// Dokun = hamle. Ters hamle açık bölümde: HOLD_MS basılı tutmak = tersi (bırakmayı beklemeden yapılır),
+// bu yüzden ileri hamle bırakınca yapılır. Ters hamle kapalıysa hamle parmak değer değmez yapılır. Önizleme yok (sahibin kararı).
+function attachPress(b, g) {
+  let timer = 0, active = false;
+  const up = commit => {
+    b.classList.remove('down');
+    if (!active) return;
+    active = false; clearTimeout(timer);
+    if (commit) press(g, false);
+  };
+  b.addEventListener('pointerdown', e => {
+    if (over || b.disabled) return;
+    e.preventDefault();
+    b.classList.add('down');
+    if (!LV.inverseAllowed || !b.querySelector('.inv-mark')) { press(g, false); return; }
+    try { b.setPointerCapture(e.pointerId); } catch (_) {}
+    active = true;
+    timer = setTimeout(() => { active = false; b.classList.remove('down'); press(g, true); }, HOLD_MS);
+  });
+  b.addEventListener('pointerup', e => {
+    const r = b.getBoundingClientRect();
+    up(e.clientX >= r.left - 20 && e.clientX <= r.right + 20 && e.clientY >= r.top - 20 && e.clientY <= r.bottom + 20);
+  });
+  b.addEventListener('pointercancel', () => up(false));
+  b.addEventListener('pointerleave', () => { if (!active) b.classList.remove('down'); });
+  b.addEventListener('contextmenu', e => e.preventDefault());
+}
+
+// =====================================================================
+// HAMLE + ANİMASYON (taşlar ok diyagramındaki yolu izler)
+// =====================================================================
+const ease = t => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+
+function press(g, inv) {
+  if (over) return;
+  if (anim) anim.finish();                 // hızlı basışlarda önceki animasyonu bitir, yenisine geç
+  if (over) return;
+  const b = document.querySelector(`.gen[data-g="${g}"]`);
+  if (b) {
+    const cls = inv ? 'rev-on' : 'press';
+    b.classList.remove('press', 'rev-on'); void b.offsetWidth; b.classList.add(cls);
+    setTimeout(() => b.classList.remove(cls), inv ? 520 : 140);
+  }
+  const p = inv ? E.inverse(LV.gens[g]) : LV.gens[g], L = LV.layout;
+  const paths = state.map((stone, k) => [stone, E.movePath(L, p, k, 32)]).filter(([, pts]) => pts);
+  history.push(state);
+  state = E.apply(state, p);
+  moves++;
+  // hareket eden taşlar üstte
+  paths.forEach(([stone]) => stoneEls[stone].parentNode.appendChild(stoneEls[stone]));
+  const t0 = performance.now();
+  const done = () => { anim = null; render(); if (E.same(state, LV.target)) win(); };
+  const step = now => {
+    const u = ease(Math.min(1, (now - t0) / MOVE_MS));
+    for (const [stone, pts] of paths) { const q = E.pointAt(pts, u); stoneEls[stone].setAttribute('transform', `translate(${q.x} ${q.y})`); }
+    if (u < 1) anim.raf = requestAnimationFrame(step); else done();
+  };
+  anim = { raf: requestAnimationFrame(step), finish() { cancelAnimationFrame(this.raf); done(); } };
+  // sayaç hemen güncellensin
+  const m = $('moves'); m.textContent = moves; m.classList.remove('bump'); void m.offsetWidth; m.classList.add('bump');
+  $('par').classList.toggle('over', !LV.declare && moves > LV.best);
+  disarm();
+  $('undoBtn').disabled = $('resetBtn').disabled = false;
+}
+
+function undo() {
+  if (over || !history.length) return;
+  if (anim) anim.finish();
+  if (over) return;
+  state = history.pop(); moves = Math.max(0, moves - 1);
+  render();
+}
+function reset() {
+  if (over || !history.length) return;
+  if (anim) anim.finish();
+  if (over) return;
+  state = LV.start.slice(); moves = 0; history = [];
+  render();
+}
+
+// İpucu: mevcut durumdan en kısa çözümün ilk hamlesi; ilgili düğme parlar (günlük sınır adım 6'da)
+function hint() {
+  if (over) return;
+  if (anim) anim.finish();
+  const i = E.nextMove(state, LV.mv.map(m => m.p), LV.dist);
+  if (i < 0 && LV.declare) {
+    const d = $('declareBtn'); d.classList.remove('hinted'); void d.offsetWidth; d.classList.add('hinted');
+    return toast(t('hint.impossible'));
+  }
+  if (i < 0) return toast(t('hint.stuck'));
+  const m = LV.mv[i];
+  const b = document.querySelector(`.gen[data-g="${m.g}"]`);
+  b.classList.remove('hinted'); void b.offsetWidth; b.classList.add('hinted');
+  toast(t(m.inv ? 'hint.nextInv' : 'hint.next'));
+}
+
+// =====================================================================
+// KAZANMA
+// =====================================================================
+function starsFor(m, best) { return m <= best ? 3 : m <= best + 2 ? 2 : 1; }
+
+function win() {
+  over = true; verdict = null;
+  Prog.save(LV.id, starsFor(moves, LV.best), moves);
+  render();
+  $('targetBox').classList.add('hit');
+  // taşlar sırayla (en üstten saat yönünde) kırmızıya döner
+  state.forEach((stone, k) => setTimeout(() => stoneEls[stone].classList.add('win'), 60 * k));
+  setTimeout(showResult, 60 * LV.n + 650);
+}
+
+// "İmkânsız" kararı: iki dokunuş (ilki "Emin misin?", 2,5 sn içinde ikincisi karar)
+let armTimer = 0;
+function disarm() {
+  clearTimeout(armTimer);
+  const b = $('declareBtn'); b.classList.remove('arm', 'hit');
+  $('declareLbl').textContent = t('btn.impossible');
+}
+function declare() {
+  if (over || !LV.declare) return;
+  if (anim) anim.finish();
+  if (over) return;
+  const b = $('declareBtn');
+  if (!b.classList.contains('arm')) {
+    b.classList.add('arm'); $('declareLbl').textContent = t('btn.sure');
+    clearTimeout(armTimer); armTimer = setTimeout(disarm, 2500);
+    return;
+  }
+  clearTimeout(armTimer);
+  over = true;
+  b.classList.remove('arm');
+  if (LV.solvable === false) {
+    // doğru: tahta gerçekten çözülemez → üç yıldız
+    verdict = 'right';
+    Prog.save(LV.id, 3, moves);
+    b.classList.add('hit');
+    render();
+    $('declareLbl').textContent = t('btn.impossible');
+    setTimeout(showResult, 700);
+  } else {
+    // yanlış: çözülebilirdi → seviye geçilmez
+    verdict = 'wrong';
+    render();
+    $('declareLbl').textContent = t('btn.impossible');
+    setTimeout(showResult, 500);
+  }
+}
+
+function showResult() {
+  const nx = nextPlayable(cur.c, cur.i), stars = s => [1, 2, 3].map(k => `<i class="${k <= s ? '' : 'off'}">⭐</i>`).join('');
+  const nextLbl = t(nx >= 0 ? 'btn.next' : 'btn.chapters');
+  if (verdict === 'wrong') {
+    $('resTitle').textContent = t('result.wrong');
+    $('resStars').innerHTML = stars(0);
+    $('resSub').textContent = t('result.wrongSub');
+    $('resLine').innerHTML = t('result.shortest', { n: LV.dist.get(E.key(state)) });
+    $('resNext').textContent = t('btn.tryAgain');
+    $('resRetry').textContent = t('btn.levels');
+  } else if (verdict === 'right') {
+    $('resTitle').textContent = t('result.right');
+    $('resStars').innerHTML = stars(3);
+    $('resSub').textContent = t('result.rightSub');
+    $('resLine').innerHTML = t('result.noPath');
+    $('resNext').textContent = nextLbl;
+    $('resRetry').textContent = t('btn.retry');
+  } else {
+    const s = starsFor(moves, LV.best);
+    $('resTitle').textContent = t('result.solved');
+    $('resStars').innerHTML = stars(s);
+    $('resSub').textContent = t('result.star' + s);
+    $('resLine').innerHTML = `${t('result.yours', { n: moves })} <span>· ${t('result.best', { n: LV.best })}</span>`;
+    $('resNext').textContent = nextLbl;
+    $('resRetry').textContent = t('btn.retry');
+  }
+  $('resultModal').classList.add('show');
+}
+
+// =====================================================================
+// OLAYLAR
+// =====================================================================
+$('undoBtn').onclick = undo;
+$('resetBtn').onclick = reset;
+$('hintBtn').onclick = hint;
+$('declareBtn').onclick = declare;
+$('resNext').onclick = () => {
+  $('resultModal').classList.remove('show');
+  if (verdict === 'wrong') return replay();
+  const nx = nextPlayable(cur.c, cur.i);
+  if (nx >= 0) return play(cur.c, nx);
+  backToMap();
+  if (cur.c + 1 < CH.length && chapterOpen(cur.c + 1)) toast(t('map.opened', { n: CH[cur.c + 1].id }), 3200);
+};
+$('resRetry').onclick = () => { $('resultModal').classList.remove('show'); if (verdict === 'wrong') backToLevels(); else replay(); };
+function backToLevels() { if (anim) anim.finish(); renderLevels(); show('levels'); }
+function backToMap() { renderMap(); show('map'); }
+$('backBtn').onclick = backToLevels;
+$('nextBtn').onclick = () => { const nx = nextPlayable(cur.c, cur.i); if (nx >= 0 && levelOpen(cur.c, nx)) play(cur.c, nx); };
+$('lvBack').onclick = backToMap;
+
+// Klavye (Mac/iPad): 1–3 düğmeler (Shift ile tersi), z / Backspace geri al, r baştan, h ipucu, x İmkânsız (iki kez), Esc geri
+document.addEventListener('keydown', e => {
+  if (document.querySelector('.modal.show')) { if (e.key === 'Escape') document.querySelectorAll('.modal.show').forEach(m => m.classList.remove('show')); return; }
+  if (e.repeat) return;
+  const k = e.key;
+  if (k === 'Escape') { if ($('game').classList.contains('active')) backToLevels(); else if ($('levels').classList.contains('active')) backToMap(); e.preventDefault(); return; }
+  if (!$('game').classList.contains('active')) return;
+  const dig = (e.code || '').match(/^Digit(\d)$/);
+  if (dig && +dig[1] >= 1 && +dig[1] <= LV.gens.length) { if (!e.shiftKey) press(+dig[1] - 1, false); else if (LV.inverseAllowed) press(+dig[1] - 1, true); }
+  else if (k === 'z' || k === 'Z' || k === 'Backspace') undo();
+  else if (k === 'r' || k === 'R') reset();
+  else if (k === 'h' || k === 'H') hint();
+  else if (k === 'x' || k === 'X') declare();
+  else return;
+  e.preventDefault();
+});
+
+applyI18n();
+// ?lv=4-3 ile doğrudan bir seviye
+// Açılış: ilk kez açılıyorsa doğrudan 1-1 (oynayarak öğretir), yoksa bölüm haritası. ?lv=4-3 ile doğrudan seviye.
+fetch('data/levels.json').then(r => r.json()).then(d => {
+  CH = d.chapters;
+  renderMap();
+  const q = new URLSearchParams(location.search).get('lv');
+  const c = CH.findIndex(ch => ch.levels.some(l => l.id === q));
+  if (c >= 0) { cur.c = c; return play(c, CH[c].levels.findIndex(l => l.id === q)); }
+  if (!Object.keys(Prog.all).length) { cur.c = 0; return play(0, 0); }
+  show('map');
+});
+</script>
+</body>
+</html>
