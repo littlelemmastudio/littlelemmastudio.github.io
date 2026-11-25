@@ -1,0 +1,1992 @@
+<!DOCTYPE html>
+<!--
+=====================================================================
+  −2048  (eksi 2048)  — mobil öncelikli sürüm
+
+  OYUN KURALLARI
+  - Kaydır: aynı pozitif sayılar birleşip ikiye katlanır.
+  - Her seviye tahtaya bir ya da birkaç negatif (mavi) taş koyar (−16 … −2048).
+    Yeni çıkan taşlar hep pozitif (2 / 4).
+  - Aynı büyüklükte pozitif + negatif çarpışırsa ikisi de yok olur.
+  - Negatif taşlar birbiriyle birleşmez.
+  - Tahtada negatif kalmazsa seviye biter.
+  - Hamle kalmazsa (ya da hamle sınırı dolarsa) seviye kaybedilir.
+
+  GÜÇLENDİRMELER
+  - Geri al:  UNDO_START hak, sonrası ödüllü reklamla.
+  - Değiştir: SWAP_START hak, iki taşın yerini değiştirir; sonrası ödüllü reklamla.
+
+  REKLAMLAR (şimdilik sahte, bkz. Ads; mobilde AdMob bağlanacak) — ayarlar: AD_RULES
+  - İlk FREE_LEVELS (3) seviye reklamsız.
+  - Geçiş reklamı her EVERY_ATTEMPTS (3) denemede bir; yalnızca kazandıktan sonra
+    "Sonraki seviye"ye geçerken. Kaybetme anında asla. Gösterilince sayaç sıfırlanır.
+  - İki reklam arası en az MIN_GAP_SEC (120 sn).
+  - Aynı seviyede üst üste HELP_AFTER_LOSSES (3) kayıpta isteğe bağlı
+    "Yardım ister misin?" penceresi (ödüllü reklam → geri al / değiştir). Kapatılabilir.
+  - Ödüllü reklam izlendiyse sıradaki geçiş reklamı atlanır.
+  - Klasik mod: her CLASSIC_EVERY_GAMES (2) biten oyunda bir geçiş reklamı; oyun bitince
+    değil, oyuncu "Yeni oyun"a basınca. Oyun ortasında yeniden başlatma sayılmaz.
+  - Uygulama açılışında / seviye başında reklam yok. Katman butonları açıldıktan
+    sonra kısa süre kilitli (yanlışlıkla tıklama olmasın).
+
+  DOSYA YAPISI
+  - ===== LEVELS =====  seviye listesi (bot/design.js üretir, bot/bot.js okur)
+  - ===== LOGIC =====   saf oyun mantığı (bot/bot.js --selftest bunu doğrular)
+  - ===== UI =====      çizim, animasyon, giriş, reklam akışı
+=====================================================================
+-->
+<html lang="en">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#eef1f5" id="themeColor">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>−2048</title>
+<!-- Dil dosyaları: yeni dil = locales/xx.js ekle + buraya bir satır -->
+<script src="locales/en.js"></script>
+<script src="locales/tr.js"></script>
+<script src="locales/fr.js"></script>
+<script src="locales/es.js"></script>
+<script src="locales/de.js"></script>
+<script src="locales/it.js"></script>
+<script src="locales/pt.js"></script>
+<script src="locales/ja.js"></script>
+<script src="locales/ko.js"></script>
+<script src="locales/zh.js"></script>
+<script src="locales/zh-TW.js"></script>
+<script src="locales/ru.js"></script>
+<script src="locales/uk.js"></script>
+<script src="locales/pl.js"></script>
+<script src="locales/nl.js"></script>
+<script src="locales/id.js"></script>
+<script src="locales/vi.js"></script>
+<script src="locales/th.js"></script>
+<script src="locales/cs.js"></script>
+<script src="locales/hi.js"></script>
+<script src="locales/ar.js"></script>
+<style>
+  :root {
+    --bg: #eef1f5;
+    --ink: #1f2a44;
+    --muted: #7a8599;
+    --panel: #ffffff;
+    --board: #cdd5df;
+    --cell: #e0e5ec;
+    --accent: #1f2a44;
+    --accent-ink: #ffffff;
+    --gold: #ffc85c;
+    --select: #ffb020;
+    --gap: 10px;
+    --slide: 110ms;
+    --w: min(calc(100vw - 32px), 440px, calc(100vh - 400px));
+    --w: min(calc(100vw - 32px), 440px, calc(100dvh - 400px));
+    --star: #ffb020;
+    --star-off: rgba(var(--sh),.14);
+    --sh: 31,42,68;            /* gölge rengi (rgb) */
+    --accent-sh: #0e1527;
+    --link: #3878da;
+    --danger: #d32f2a;
+    --good: #2fa35f;
+    --overlay: rgba(238,241,245,.84);
+    --sel-bg: #eaf2ff;
+    --boss-bg: #fff4ee;
+    --warn-bg: #ffe1d6; --warn-ink: #b62228;
+    --swap-ink: #9a6200;
+    color-scheme: light;
+  }
+  /* koyu tema: html[data-theme="dark"] (JS, ayara ya da sisteme göre koyar) */
+  :root[data-theme="dark"] {
+    --bg: #14171f;
+    --ink: #eef1f5;
+    --muted: #8e97a8;
+    --panel: #232836;
+    --board: #2d3444;
+    --cell: #394155;
+    --accent: #eef1f5;
+    --accent-ink: #1f2a44;
+    --accent-sh: #8e97a8;
+    --star-off: rgba(255,255,255,.16);
+    --sh: 0,0,0;
+    --link: #6aa6f5;
+    --danger: #ff6b61;
+    --good: #5fd38f;
+    --overlay: rgba(20,23,31,.82);
+    --sel-bg: #1e2c47;
+    --boss-bg: #3a2620;
+    --warn-bg: #4a2522; --warn-ink: #ff9a8f;
+    --swap-ink: #ffc85c;
+    color-scheme: dark;
+  }
+  @media (max-width: 380px) { :root { --gap: 8px; } }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; height: 100%; background: var(--bg); color: var(--ink);
+    font-family: ui-rounded, "SF Pro Rounded", "Nunito", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    touch-action: none; overflow: hidden; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+    overscroll-behavior: none;
+  }
+  #app {
+    min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 14px;
+    padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+  }
+  /* iPad: telefon düzeni bütünüyle, oranlı büyütülür (bkz. fitScale). Telefonda --k = 1. */
+  #app, .modal .sheet { scale: var(--k, 1); }
+  .row { width: var(--w); min-width: 260px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+
+  .seg { flex: 1; min-width: 0; display: flex; background: var(--board); border-radius: 12px; padding: 4px; gap: 2px; }
+  .seg button {
+    flex: 1 1 auto; height: 36px; border: 0; border-radius: 9px; background: transparent; color: var(--muted);
+    font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; touch-action: manipulation;
+    min-width: 0; padding: 0 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;   /* 3 sekme dar ekranda tek satır */
+  }
+  .seg button.on { background: var(--panel); color: var(--ink); box-shadow: 0 1px 0 rgba(var(--sh),.1); }
+  .iconbtn {
+    width: 44px; height: 44px; flex: none; border: 0; border-radius: 12px; background: var(--panel); color: var(--ink);
+    display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 1px 0 rgba(var(--sh),.08);
+    touch-action: manipulation;
+  }
+  .iconbtn svg { width: 22px; height: 22px; }
+
+  /* hamle çubuğu + yıldızlar */
+  .movebar { font-size: 14px; font-weight: 700; color: var(--muted); min-height: 22px; }
+  .movebar b { color: var(--ink); font-variant-numeric: tabular-nums; }
+  .movebar.warn b { color: var(--danger); }
+  .stars { letter-spacing: 1px; font-size: 17px; color: var(--star); white-space: nowrap; }
+  .stars .off { color: var(--star-off); }
+  .stars small { font-size: 12px; color: var(--muted); letter-spacing: 0; margin-left: 4px; font-weight: 700; }
+  .bigstars { font-size: 46px; line-height: 1; color: var(--star); display: flex; gap: 6px; }
+  .bigstars span { display: inline-block; animation: starIn .35s cubic-bezier(.2,1.6,.4,1) both; }
+  .bigstars span.off { color: var(--star-off); }
+  .bigstars span:nth-child(2) { animation-delay: .18s; font-size: 56px; margin-top: -8px; }
+  .bigstars span:nth-child(3) { animation-delay: .36s; }
+  @keyframes starIn { from { transform: scale(0) rotate(-40deg); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .lv .stars { font-size: 14px; }
+
+  /* ayarlar */
+  .setrow { display: flex; align-items: center; justify-content: space-between; padding: 12px 2px; border-bottom: 1px solid var(--cell); font-weight: 700; }
+  .switch { width: 50px; height: 30px; border-radius: 999px; border: 0; background: var(--board); position: relative; cursor: pointer; transition: background .15s; }
+  .switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; transition: transform .15s; box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+  .switch.on { background: #2fb36b; }
+  .switch.on::after { transform: translateX(20px); }
+  .setrow.setlink {
+    width: 100%; background: none; border: 0; border-bottom: 1px solid var(--cell); border-radius: 0;
+    font: inherit; font-weight: 700; color: inherit; cursor: pointer; text-align: left; touch-action: manipulation;
+  }
+  .setrow .seg { flex: 0 0 auto; padding: 3px; gap: 2px; border-radius: 10px; }
+  .setrow .seg button { flex: 0 0 auto; height: 30px; padding: 0 10px; font-size: 13px; border-radius: 8px; }
+  .setlink .val { display: inline-flex; align-items: center; gap: 2px; color: var(--muted); }
+  .setlink .val svg { width: 18px; height: 18px; }
+
+  /* dil seçimi */
+  .langlist { display: flex; flex-direction: column; gap: 8px; margin: 4px 0 6px; }
+  .langopt {
+    display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 12px 10px 10px;
+    border: 0; border-radius: 16px; background: var(--bg); color: var(--ink);
+    font: inherit; text-align: start; cursor: pointer; touch-action: manipulation;
+    box-shadow: inset 0 0 0 2px transparent; transition: background .15s, box-shadow .15s, transform .08s;
+  }
+  .langopt:active { transform: scale(.98); }
+  .langopt.on { background: var(--sel-bg); box-shadow: inset 0 0 0 2px var(--link); }
+  .langopt .code {
+    width: 46px; height: 46px; flex: none; border-radius: 11px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: 900; letter-spacing: .5px; box-shadow: 0 2px 0 rgba(var(--sh),.12);
+  }
+  .langopt .names { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+  .langopt .names b { font-size: 17px; font-weight: 800; }
+  .langopt .names small { font-size: 13px; font-weight: 600; color: var(--muted); }
+  .langopt .tick {
+    width: 26px; height: 26px; flex: none; border-radius: 50%; background: #3878da; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; transform: scale(.4); transition: opacity .15s, transform .2s cubic-bezier(.2,1.6,.4,1);
+  }
+  .langopt .tick svg { width: 15px; height: 15px; }
+  .langopt.on .tick { opacity: 1; transform: scale(1); }
+  .linkbtn { background: none; border: 0; font: inherit; font-weight: 700; color: var(--link); cursor: pointer; padding: 10px 0; text-align: left; }
+  .linkbtn.danger { color: var(--danger); }
+
+  /* tanıtım kartı */
+  .demo { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 22px; font-weight: 900; color: var(--muted); }
+  .demo .t { width: 52px; height: 52px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 900; }
+  .demo .t.zero { background: var(--cell); color: var(--muted); box-shadow: inset 0 0 0 2px var(--board); font-size: 22px; }
+  .card-body { color: var(--ink); font-weight: 600; line-height: 1.5; text-align: left; }
+  .card-body li { margin: 4px 0; }
+  .card-body ul { margin: 0; padding-left: 20px; }
+  h1 { margin: 0; font-size: 40px; font-weight: 900; letter-spacing: -1.5px; line-height: 1; }
+  h1 .minus { color: var(--link); }
+  .scores { display: flex; gap: 8px; }
+  .box {
+    position: relative; background: var(--panel); border-radius: 14px; padding: 7px 14px;
+    text-align: center; min-width: 74px; box-shadow: 0 1px 0 rgba(var(--sh),.06);
+  }
+  .box small { display: block; font-size: 10.5px; font-weight: 700; color: var(--muted); letter-spacing: .6px; text-transform: uppercase; }
+  .box b { font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .plus {
+    position: absolute; left: 0; right: 0; top: 4px; font-weight: 800; font-size: 16px; color: #ff7430;
+    animation: rise .7s ease-out forwards; pointer-events: none;
+  }
+  @keyframes rise { from { transform: translateY(0); opacity: 1; } to { transform: translateY(-34px); opacity: 0; } }
+
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; justify-content: flex-end; }
+  .chip {
+    background: var(--panel); border-radius: 999px; padding: 7px 12px; font-size: 14px; font-weight: 700;
+    display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 1px 0 rgba(var(--sh),.06);
+    border: 0; font-family: inherit; color: inherit; cursor: pointer; white-space: nowrap;
+  }
+  .chip.warn { background: var(--warn-bg); color: var(--warn-ink); }
+  .boss-tag { font-size: 10px; font-weight: 900; letter-spacing: .5px; background: #921826; color: #fff; border-radius: 6px; padding: 2px 5px; }
+  .mini {
+    display: inline-flex; align-items: center; justify-content: center; height: 24px; padding: 0 7px;
+    border-radius: 7px; font-size: 12px; font-weight: 800; transition: opacity .2s;
+  }
+  .mini.gone { opacity: .25; text-decoration: line-through; }
+
+  /* tahta */
+  #board {
+    position: relative; width: var(--w); min-width: 260px; aspect-ratio: 1;
+    background: var(--board); border-radius: 18px; container-type: size;
+    transition: box-shadow .2s;
+  }
+  #board.swap-mode { box-shadow: 0 0 0 4px var(--select); }
+  .cell, .tile, .burst {
+    position: absolute; left: var(--gap); top: var(--gap);
+    width: calc((100% - 5 * var(--gap)) / 4); height: calc((100% - 5 * var(--gap)) / 4);
+    border-radius: 12px;
+    transform: translate(calc(var(--c) * (100% + var(--gap))), calc(var(--r) * (100% + var(--gap))));
+  }
+  .cell { background: var(--cell); }
+  .tile { transition: transform var(--slide) ease-in-out; z-index: 2; }
+  .tile.swapping { transition-duration: 220ms; z-index: 4; }
+  .tile.dying { z-index: 1; }
+  .tile .in {
+    width: 100%; height: 100%; border-radius: inherit;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 11cqw; letter-spacing: -.5px; font-variant-numeric: tabular-nums;
+    box-shadow: 0 2px 0 rgba(var(--sh),.12);
+  }
+  .tile[data-len="3"] .in { font-size: 8.6cqw; }
+  .tile[data-len="4"] .in { font-size: 7cqw; }
+  .tile[data-len="5"] .in { font-size: 5.8cqw; }
+  .tile.pop .in   { animation: pop 160ms ease-out both; }
+  .tile.bump .in  { animation: bump 170ms ease-out; }
+  .tile.vanish .in { animation: vanish 240ms ease-in var(--slide) forwards; }
+  .tile.ready { animation: glow 1.3s ease-in-out infinite; }
+  #board.swap-mode .tile .in { animation: wiggle .9s ease-in-out infinite; }
+  #board.swap-mode .tile.selected { outline: 4px solid var(--select); outline-offset: 2px; z-index: 5; }
+  #board.swap-mode .tile.selected .in { animation: none; transform: scale(1.06); }
+  @keyframes pop    { from { transform: scale(0); } to { transform: scale(1); } }
+  @keyframes bump   { 0% { transform: scale(1); } 50% { transform: scale(1.14); } 100% { transform: scale(1); } }
+  @keyframes vanish { from { transform: scale(1); opacity: 1; } to { transform: scale(.15) rotate(25deg); opacity: 0; } }
+  @keyframes glow   { 0%,100% { box-shadow: 0 0 0 0 rgba(56,120,218,0); } 50% { box-shadow: 0 0 0 4px rgba(56,120,218,.55), 0 0 18px 4px rgba(56,120,218,.45); } }
+  @keyframes wiggle { 0%,100% { transform: rotate(0); } 25% { transform: rotate(-2deg); } 75% { transform: rotate(2deg); } }
+  .burst { z-index: 3; pointer-events: none; border: 3px solid #5596ee; animation: burst 450ms ease-out var(--slide) both; }
+  @keyframes burst { from { opacity: 1; scale: .9; } to { opacity: 0; scale: 1.7; } }
+
+  #over {
+    position: absolute; inset: 0; z-index: 10; border-radius: 18px;
+    background: var(--overlay); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+    display: none; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+    text-align: center; padding: 20px;
+  }
+  #over.show { display: flex; animation: fade .25s ease-out; }
+  #over h2 { margin: 0; font-size: 30px; font-weight: 900; }
+  #over p { margin: 0 0 6px; color: var(--muted); font-weight: 600; }
+  #over .btns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+
+  .actions { width: var(--w); min-width: 260px; display: flex; gap: 10px; }
+  .btn {
+    flex: 1; height: 54px; border: 0; border-radius: 16px; cursor: pointer; touch-action: manipulation;
+    font: inherit; font-size: 16px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+    background: var(--panel); color: var(--ink); box-shadow: 0 2px 0 rgba(var(--sh),.08);
+    transition: transform .08s, opacity .15s, background .15s;
+  }
+  .btn:active { transform: translateY(1px) scale(.98); }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); box-shadow: 0 3px 0 var(--accent-sh); }
+  .btn.active { background: var(--select); color: #3b2200; box-shadow: 0 3px 0 #c98400; }
+  .btn.small { flex: 0 0 auto; height: 46px; padding: 0 18px; font-size: 15px; }
+  .btn.icon { flex: 0 0 auto; width: 58px; }
+  .btn:disabled { opacity: .4; cursor: default; }
+  .btn svg { width: 21px; height: 21px; flex: none; }
+  .btn > span[data-i18n], #swapLabel { white-space: nowrap; }
+  /* Arapça: yazılar sağdan sola; tahta, düğme dizilişi ve sayılar soldan sağa kalır */
+  html[lang="ar"] .help, html[lang="ar"] .modal .sheet, html[lang="ar"] #over { direction: rtl; }   /* Çince/Tayca kısa etiketler harf harf bölünmesin */
+  .badge {
+    min-width: 24px; padding: 2px 7px; border-radius: 999px; font-size: 12.5px; font-weight: 800;
+    background: rgba(var(--sh),.08);
+  }
+  .btn.primary .badge { background: rgba(255,255,255,.2); }
+  .badge.ad { background: var(--gold); color: #3b2200; }
+
+  #over .reward { color: var(--good); }
+  .help { width: var(--w); min-width: 260px; min-height: 38px; text-align: center; font-size: 13px; line-height: 1.45; color: var(--muted); font-weight: 600; }
+  .help b { color: var(--ink); }
+  .help.swap { color: var(--swap-ink); }
+
+  /* seviye seçimi */
+  #levels {
+    position: fixed; inset: 0; z-index: 40; background: var(--bg);
+    display: none; flex-direction: column;
+    padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+  }
+  #levels.show { display: flex; animation: fade .2s ease-out; }
+  #levels header { width: min(100%, 520px); margin: 0 auto 12px; display: flex; align-items: center; justify-content: space-between; }
+  #levels h2 { margin: 0; font-size: 28px; font-weight: 900; }
+  #levels .sub { color: var(--muted); font-weight: 700; font-size: 13px; }
+  #levelGrid {
+    width: min(100%, 520px); margin: 0 auto; overflow-y: auto; touch-action: pan-y; -webkit-overflow-scrolling: touch;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding-bottom: 12px;
+  }
+  .world { grid-column: 1 / -1; margin: 10px 2px 0; font-size: 14px; font-weight: 900; color: var(--muted); letter-spacing: .4px; }
+  .world:first-child { margin-top: 0; }
+  .lv {
+    position: relative; border: 0; border-radius: 16px; background: var(--panel); color: var(--ink);
+    font: inherit; padding: 12px 6px 10px; cursor: pointer; text-align: center;
+    display: flex; flex-direction: column; align-items: center; gap: 7px; box-shadow: 0 2px 0 rgba(var(--sh),.08);
+    touch-action: manipulation;
+  }
+  .lv.boss { background: var(--boss-bg); box-shadow: 0 0 0 2px #f65a2c inset, 0 2px 0 rgba(var(--sh),.08); }
+  .lv.current { outline: 3px solid var(--link); }
+  .lv .num { font-size: 13px; font-weight: 800; color: var(--muted); display: flex; gap: 5px; align-items: center; }
+  .lv .negs { display: flex; gap: 3px; flex-wrap: wrap; justify-content: center; min-height: 24px; }
+  .lv .meta { font-size: 11px; font-weight: 700; color: var(--muted); min-height: 14px; }
+  .lv .check {
+    position: absolute; top: 8px; right: 8px; width: 20px; height: 20px; border-radius: 50%;
+    background: #2fb36b; color: #fff; font-size: 12px; font-weight: 900; display: flex; align-items: center; justify-content: center;
+  }
+
+  /* sahte reklamlar */
+  .modal {
+    position: fixed; inset: 0; z-index: 50; background: rgba(14,21,39,.72);
+    display: none; align-items: center; justify-content: center; padding: 16px;
+  }
+  .modal.show { display: flex; animation: fade .2s ease-out; }
+  .modal .sheet {
+    width: min(340px, 100%); background: var(--panel); border-radius: 22px; padding: 24px; text-align: center;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .modal .btns { display: flex; gap: 8px; }
+  .modal .msg { color: var(--muted); font-weight: 600; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="row">
+    <div class="seg" id="modeSeg">
+      <button data-mode="levels" data-i18n="mode.levels"></button>
+      <button data-mode="daily" data-i18n="mode.daily"></button>
+      <button data-mode="classic" data-i18n="mode.classic"></button>
+    </div>
+    <button class="iconbtn" id="settingsBtn" data-i18n-aria="aria.settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
+  </div>
+
+  <div class="row">
+    <h1><span class="minus" id="titleMinus">−</span>2048</h1>
+    <div class="scores">
+      <div class="box" id="scoreBox"><small data-i18n="score"></small><b id="score">0</b></div>
+      <div class="box"><small data-i18n="best"></small><b id="best">0</b></div>
+    </div>
+  </div>
+
+  <div class="row">
+    <button class="chip" id="levelsBtn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      <span id="levelLabel"></span>
+    </button>
+    <div class="chips" id="negChips"></div>
+  </div>
+
+  <div class="row movebar" id="movebar"></div>
+
+  <div id="board">
+    <div id="over">
+      <div class="bigstars" id="overStars"></div>
+      <h2 id="overTitle"></h2>
+      <p id="overMsg"></p>
+      <div class="btns" id="overBtns"></div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btn primary" id="undoBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
+      <span data-i18n="undo"></span> <span class="badge" id="undoBadge">10</span>
+    </button>
+    <button class="btn" id="swapBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4 3 8l4 4"/><path d="M3 8h14"/><path d="m17 20 4-4-4-4"/><path d="M21 16H7"/></svg>
+      <span id="swapLabel"></span> <span class="badge" id="swapBadge">3</span>
+    </button>
+    <button class="btn icon" id="newBtn" data-i18n-aria="aria.restart">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+    </button>
+  </div>
+
+  <div class="help" id="help"></div>
+</div>
+
+<div id="levels">
+  <header>
+    <div>
+      <h2 data-i18n="levels.title"></h2>
+      <div class="sub" id="levelsSub"></div>
+    </div>
+    <button class="btn small" id="levelsClose" data-i18n="close"></button>
+  </header>
+  <div id="levelGrid"></div>
+</div>
+
+<div id="ad" class="modal">
+  <div class="sheet">
+    <div class="msg" id="adMsg"></div>
+    <div class="btns">
+      <button class="btn small" id="adCancel" style="flex:1" data-i18n="ad.cancel"></button>
+      <button class="btn small primary" id="adClaim" style="flex:1" data-i18n="ad.watch"></button>
+    </div>
+  </div>
+</div>
+
+<div id="helpAd" class="modal">
+  <div class="sheet">
+    <div style="font-size:24px;font-weight:900" data-i18n="help.title"></div>
+    <div class="msg" id="helpAdMsg"></div>
+    <button class="btn small primary" id="helpUndo" data-i18n="help.undo"></button>
+    <button class="btn small" id="helpSwap" data-i18n="help.swap"></button>
+    <button class="btn small" id="helpNo" style="background:transparent;box-shadow:none;color:var(--muted)" data-i18n="help.no"></button>
+  </div>
+</div>
+
+<div id="settings" class="modal">
+  <div class="sheet" style="text-align:start;gap:4px">
+    <div style="font-size:24px;font-weight:900;margin-bottom:6px" data-i18n="settings.title"></div>
+    <div class="setrow"><span data-i18n="settings.sound"></span> <button class="switch" id="swSound" data-i18n-aria="settings.sound"></button></div>
+    <div class="setrow"><span data-i18n="settings.haptic"></span> <button class="switch" id="swHaptic" data-i18n-aria="settings.haptic"></button></div>
+    <button class="setrow setlink" id="langBtn">
+      <span data-i18n="settings.language"></span>
+      <span class="val"><span id="langCur"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span>
+    </button>
+    <div class="setrow"><span data-i18n="settings.theme"></span>
+      <div class="seg" id="themeSeg">
+        <button data-theme-opt="system" data-i18n="theme.system"></button>
+        <button data-theme-opt="light" data-i18n="theme.light"></button>
+        <button data-theme-opt="dark" data-i18n="theme.dark"></button>
+      </div>
+    </div>
+    <button class="linkbtn" id="howBtn" data-i18n="settings.how"></button>
+    <button class="linkbtn" id="supportBtn" data-i18n="settings.support"></button>
+    <button class="linkbtn" id="reportBtn" data-i18n="settings.report"></button>
+    <button class="linkbtn" id="privacyBtn" data-i18n="settings.privacy"></button>
+    <button class="linkbtn" id="privacyChoicesBtn" style="display:none" data-i18n="settings.privacyChoices"></button>
+    <button class="linkbtn danger" id="resetBtn" data-i18n="settings.reset"></button>
+    <div style="color:var(--muted);font-size:12px;font-weight:600;margin:6px 0 10px" id="versionText"></div>
+    <button class="btn small primary" id="settingsClose" data-i18n="close"></button>
+  </div>
+</div>
+
+<div id="langModal" class="modal">
+  <div class="sheet" style="text-align:start;gap:8px">
+    <div style="font-size:24px;font-weight:900" data-i18n="settings.language"></div>
+    <div class="langlist" id="langList"></div>
+    <button class="btn small" id="langBack" data-i18n="close"></button>
+  </div>
+</div>
+
+<div id="card" class="modal">
+  <div class="sheet">
+    <div style="font-size:24px;font-weight:900" id="cardTitle"></div>
+    <div id="cardBody" class="card-body"></div>
+    <button class="btn small primary" id="cardOk" data-i18n="ok"></button>
+  </div>
+</div>
+
+<script>
+// ===================================================================
+// ===== LEVELS =====
+// Alanlar:
+//   negs:  negatif taşların büyüklükleri, ör. [64, 64]
+//   moves: (isteğe bağlı) hamle sınırı
+//   at:    (isteğe bağlı) negatiflerin sabit konumları [[satır, sütun], ...]
+//          verilmezse rastgele
+// Her 10. seviye boss. 10 seviye = 1 dünya.
+// ===================================================================
+// bot/design.js tarafından üretildi (node design.js build). Elle de düzenlenebilir.
+const LEVELS = [
+  { negs: [16], stars: [17, 15] }, // 1 · insan modeli %100
+  { negs: [16, 16], stars: [22, 20] }, // 2 · insan modeli %100
+  { negs: [32], stars: [28, 26] }, // 3 · insan modeli %100
+  { negs: [16, 32], stars: [35, 33] }, // 4 · insan modeli %100
+  { negs: [32, 32], stars: [41, 37] }, // 5 · insan modeli %100
+  { negs: [16, 16, 32], stars: [41, 38] }, // 6 · insan modeli %100
+  { negs: [16, 32, 32], stars: [48, 44] }, // 7 · insan modeli %100
+  { negs: [32, 32, 32], stars: [57, 53] }, // 8 · insan modeli %100
+  { negs: [32, 64], stars: [64, 59] }, // 9 · insan modeli %100
+  { negs: [128], stars: [86, 81] }, // 10 BOSS · insan modeli %100
+  { negs: [16, 32], moves: 46, stars: [37, 34] }, // 11 · insan modeli %100
+  { negs: [32, 32], moves: 66, stars: [42, 38] }, // 12 · insan modeli %97
+  { negs: [16, 16, 32], moves: 47, stars: [41, 38] }, // 13 · insan modeli %97
+  { negs: [32, 32, 32], moves: 92, stars: [57, 51] }, // 14 · insan modeli %98
+  { negs: [32, 64], moves: 76, stars: [61, 57] }, // 15 · insan modeli %92
+  { negs: [32, 32, 64], moves: 94, stars: [76, 71] }, // 16 · insan modeli %92
+  { negs: [64, 64], moves: 94, stars: [77, 72] }, // 17 · insan modeli %92
+  { negs: [32, 64, 64], moves: 114, stars: [93, 87] }, // 18 · insan modeli %88
+  { negs: [64, 64, 64], stars: [110, 103] }, // 19 · insan modeli %97
+  { negs: [128, 128, 128], moves: 256, stars: [203, 191] }, // 20 BOSS · insan modeli %63
+  { negs: [32, 64], moves: 101, stars: [61, 57] }, // 21 · insan modeli %92
+  { negs: [128], moves: 101, stars: [81, 76] }, // 22 · insan modeli %75
+  { negs: [32, 32, 64], moves: 103, at: [[0,0],[3,3],[0,3]], stars: [81, 76] }, // 23 · insan modeli %93
+  { negs: [32, 64, 64], moves: 129, stars: [93, 87] }, // 24 · insan modeli %87
+  { negs: [64, 128], moves: 146, stars: [117, 110] }, // 25 · insan modeli %82
+  { negs: [64, 64, 64], moves: 140, stars: [112, 105] }, // 26 · insan modeli %92
+  { negs: [128, 128], moves: 173, stars: [139, 130] }, // 27 · insan modeli %72
+  { negs: [64, 64, 128], moves: 184, at: [[1,1],[2,2],[1,2]], stars: [143, 129] }, // 28 · insan modeli %88
+  { negs: [64, 128, 128], moves: 288, stars: [178, 167] }, // 29 · insan modeli %80
+  { negs: [128, 128, 128], at: [[1,1],[2,2],[1,2]], stars: [209, 196] }, // 30 BOSS · insan modeli %73
+  { negs: [64, 128], moves: 164, stars: [120, 113] }, // 31 · insan modeli %90
+  { negs: [64, 64, 64, 64], moves: 220, stars: [144, 135] }, // 32 · insan modeli %88
+  { negs: [64, 64, 128], moves: 170, at: [[0,0],[3,3],[0,3]], stars: [145, 136] }, // 33 · insan modeli %87
+  { negs: [64, 128, 128], at: [[1,1],[2,2],[1,2]], stars: [175, 162] }, // 34 · insan modeli %83
+  { negs: [64, 64, 64, 128], moves: 233, at: [[0,0],[3,3],[0,3],[3,0]], stars: [175, 165] }, // 35 · insan modeli %73
+  { negs: [128, 128, 128], stars: [207, 195] }, // 36 · insan modeli %72
+  { negs: [64, 64, 128, 128], at: [[1,1],[2,2],[1,2],[2,1]], stars: [209, 189] }, // 37 · insan modeli %65
+  { negs: [64, 128, 128, 128], moves: 308, at: [[0,0],[3,3],[0,3],[3,0]], stars: [234, 220] }, // 38 · insan modeli %68
+  { negs: [128, 128, 128, 128], stars: [271, 244] }, // 39 · insan modeli %58
+  { negs: [256, 256], stars: [279, 253] }, // 40 BOSS · insan modeli %65
+  { negs: [64, 64, 128], at: [[1,1],[2,2],[1,2]], stars: [145, 128] }, // 41 · insan modeli %92
+  { negs: [256], moves: 208, at: [[0,0]], stars: [153, 141] }, // 42 · insan modeli %80
+  { negs: [128, 128], moves: 199, at: [[0,0],[3,3]], stars: [147, 133] }, // 43 · insan modeli %88
+  { negs: [64, 64, 64, 128], moves: 233, stars: [175, 164] }, // 44 · insan modeli %75
+  { negs: [64, 64, 128, 128], at: [[0,0],[3,3],[0,3],[3,0]], stars: [202, 190] }, // 45 · insan modeli %72
+  { negs: [128, 256], moves: 343, at: [[1,1],[2,2]], stars: [216, 194] }, // 46 · insan modeli %67
+  { negs: [64, 128, 128, 128], moves: 312, stars: [237, 223] }, // 47 · insan modeli %55
+  { negs: [256, 256], at: [[1,1],[2,2]], stars: [280, 255] }, // 48 · insan modeli %62
+  { negs: [128, 128, 256], moves: 431, stars: [273, 253] }, // 49 · insan modeli %67
+  { negs: [128, 256, 256], at: [[0,0],[3,3],[0,3]], stars: [332, 313] }, // 50 BOSS · insan modeli %33
+  { negs: [64, 64, 64, 128], at: [[0,0],[3,3],[0,3],[3,0]], stars: [171, 158] }, // 51 · insan modeli %78
+  { negs: [128, 256], stars: [210, 196] }, // 52 · insan modeli %78
+  { negs: [64, 64, 128, 128], moves: 252, stars: [204, 192] }, // 53 · insan modeli %62
+  { negs: [64, 128, 128, 128], at: [[0,0],[3,3],[0,3],[3,0]], stars: [238, 224] }, // 54 · insan modeli %70
+  { negs: [256, 256], moves: 450, stars: [269, 249] }, // 55 · insan modeli %77
+  { negs: [128, 128, 256], moves: 364, stars: [271, 252] }, // 56 · insan modeli %45
+  { negs: [512], moves: 338, at: [[1,1]], stars: [293, 260] }, // 57 · insan modeli %42
+  { negs: [128, 128, 128, 256], at: [[1,1],[2,2],[1,2],[2,1]], stars: [335, 316] }, // 58 · insan modeli %28
+  { negs: [128, 256, 256], at: [[1,1],[2,2],[1,2]], stars: [330, 311] }, // 59 · insan modeli %42
+  { negs: [256, 512], moves: 546, stars: [406, 383] }, // 60 BOSS · insan modeli %27
+  { negs: [128, 256], at: [[1,1],[2,2]], stars: [210, 198] }, // 61 · insan modeli %72
+  { negs: [512], stars: [278, 262] }, // 62 · insan modeli %47
+  { negs: [128, 128, 128, 128], moves: 428, stars: [268, 252] }, // 63 · insan modeli %50
+  { negs: [128, 128, 256], moves: 323, stars: [274, 258] }, // 64 · insan modeli %52
+  { negs: [256, 256], moves: 370, at: [[0,0],[3,3]], stars: [275, 259] }, // 65 · insan modeli %47
+  { negs: [128, 256, 256], moves: 522, stars: [344, 324] }, // 66 · insan modeli %28
+  { negs: [128, 128, 128, 256], moves: 434, at: [[0,0],[3,3],[0,3],[3,0]], stars: [339, 319] }, // 67 · insan modeli %22
+  { negs: [256, 256, 256], stars: [401, 368] }, // 68 · insan modeli %32
+  { negs: [128, 128, 256, 256], at: [[1,1],[2,2],[1,2],[2,1]], stars: [408, 384] }, // 69 · insan modeli %30
+  { negs: [256, 512], at: [[1,1],[2,2]], stars: [399, 376] }, // 70 BOSS · insan modeli %42
+  { negs: [128, 256], moves: 338, at: [[0,0],[3,3]], stars: [211, 197] }, // 71 · insan modeli %80
+  { negs: [512], moves: 440, at: [[0,0]], stars: [271, 255] }, // 72 · insan modeli %48
+  { negs: [256, 256], moves: 439, at: [[0,0],[3,3]], stars: [268, 247] }, // 73 · insan modeli %45
+  { negs: [128, 128, 256], moves: 320, at: [[1,1],[2,2],[1,2]], stars: [276, 260] }, // 74 · insan modeli %47
+  { negs: [128, 128, 128, 256], moves: 438, at: [[1,1],[2,2],[1,2],[2,1]], stars: [335, 316] }, // 75 · insan modeli %30
+  { negs: [128, 256, 256], moves: 395, at: [[0,0],[3,3],[0,3]], stars: [341, 308] }, // 76 · insan modeli %28
+  { negs: [256, 512], moves: 485, at: [[1,1],[2,2]], stars: [414, 390] }, // 77 · insan modeli %32
+  { negs: [256, 256, 512], moves: 848, at: [[1,1],[2,2],[1,2]], stars: [526, 496] }, // 78 · insan modeli %10
+  { negs: [512, 512], moves: 812, at: [[0,0],[3,3]], stars: [534, 503] }, // 79 · insan modeli %13
+  { negs: [1024], at: [[0,0]], stars: [533, 488] }, // 80 BOSS · insan modeli %18
+  { negs: [128, 256], moves: 289, at: [[1,1],[2,2]], stars: [212, 195] }, // 81 · insan modeli %75
+  { negs: [512], at: [[1,1]], stars: [279, 258] }, // 82 · insan modeli %37
+  { negs: [256, 256], moves: 380, stars: [267, 248] }, // 83 · insan modeli %45
+  { negs: [128, 256, 256], moves: 412, at: [[1,1],[2,2],[1,2]], stars: [333, 314] }, // 84 · insan modeli %47
+  { negs: [256, 512], moves: 546, at: [[1,1],[2,2]], stars: [398, 375] }, // 85 · insan modeli %23
+  { negs: [256, 256, 256], moves: 455, at: [[1,1],[2,2],[1,2]], stars: [394, 371] }, // 86 · insan modeli %15
+  { negs: [512, 512], at: [[1,1],[2,2]], stars: [574, 499] }, // 87 · insan modeli %5
+  { negs: [1024], moves: 877, at: [[0,0]], stars: [528, 498] }, // 88 · insan modeli %10
+  { negs: [256, 256, 512], moves: 636, at: [[1,1],[2,2],[1,2]], stars: [530, 500] }, // 89 · insan modeli %15
+  { negs: [512, 1024], stars: [840, 730] }, // 90 BOSS · insan modeli %3
+  { negs: [128, 128, 256], stars: [267, 251] }, // 91 · insan modeli %60
+  { negs: [512], moves: 364, stars: [274, 255] }, // 92 · insan modeli %55
+  { negs: [128, 128, 128, 256], moves: 517, stars: [331, 312] }, // 93 · insan modeli %42
+  { negs: [128, 256, 256], moves: 392, stars: [337, 317] }, // 94 · insan modeli %45
+  { negs: [256, 512], moves: 647, stars: [410, 386] }, // 95 · insan modeli %25
+  { negs: [128, 128, 256, 256], moves: 524, stars: [401, 378] }, // 96 · insan modeli %22
+  { negs: [256, 256, 512], stars: [520, 490] }, // 97 · insan modeli %12
+  { negs: [512, 512], at: [[0,0],[3,3]], stars: [517, 487] }, // 98 · insan modeli %15
+  { negs: [1024], moves: 740, at: [[0,0]], stars: [525, 495] }, // 99 · insan modeli %12
+  { negs: [2048], stars: [1109, 964] }, // 100 BOSS · insan modeli %0
+];
+// ===== END LEVELS =====
+
+// ===== DAILY =====
+// node bot/daily.js tarafından üretildi ve doğrulandı (366 gün). Gün d → [LEVELS indeksi, salt]
+const DAILY = [[11,0],[20,0],[28,0],[36,0],[35,0],[44,1],[43,0],[11,0],[20,0],[21,0],[32,0],[33,0],[44,0],[45,0],[16,0],[27,0],[28,0],[32,0],[33,0],[43,0],[42,0],[15,0],[24,0],[28,0],[37,0],[31,0],[40,0],[42,0],[11,0],[25,0],[26,0],[33,0],[34,0],[40,0],[41,0],[17,0],[28,0],[24,0],[35,1],[33,0],[42,0],[41,0],[10,0],[28,0],[27,0],[36,0],[35,0],[42,0],[41,0],[15,0],[26,0],[27,0],[30,3],[31,0],[42,0],[43,0],[14,0],[24,0],[25,0],[35,0],[34,0],[47,0],[46,1],[10,0],[28,1],[22,0],[31,0],[34,0],[43,0],[43,0],[14,0],[21,0],[22,0],[30,3],[30,0],[47,3],[47,2],[14,0],[25,0],[25,0],[34,0],[33,0],[42,0],[40,0],[18,0],[27,0],[26,0],[34,0],[33,0],[48,3],[48,0],[10,0],[21,0],[22,0],[33,0],[34,0],[45,0],[46,0],[17,0],[23,0],[24,0],[31,0],[32,0],[47,0],[48,0],[15,0],[26,0],[24,0],[35,0],[31,0],[40,0],[43,1],[12,0],[26,0],[25,0],[38,2],[38,3],[42,0],[41,0],[10,0],[21,0],[22,0],[33,0],[34,0],[45,0],[46,0],[17,0],[28,0],[20,0],[37,0],[36,0],[45,0],[44,0],[12,0],[21,0],[20,0],[38,1],[36,0],[45,0],[45,1],[16,0],[23,0],[24,1],[31,0],[32,0],[48,0],[40,0],[14,0],[25,0],[25,0],[34,0],[37,1],[46,2],[40,0],[18,0],[22,0],[21,0],[36,0],[35,0],[43,0],[44,1],[15,0],[26,0],[28,0],[30,0],[31,0],[42,0],[44,2],[15,0],[21,0],[20,0],[30,3],[37,1],[46,0],[45,0],[14,0],[23,0],[22,0],[31,0],[37,1],[48,2],[45,0],[16,0],[22,0],[23,0],[30,0],[31,0],[46,0],[47,0],[15,0],[24,0],[27,0],[36,0],[31,0],[40,0],[43,0],[12,0],[24,0],[23,0],[30,3],[38,3],[41,0],[40,0],[13,0],[22,0],[25,0],[34,0],[37,1],[46,0],[46,1],[17,0],[24,0],[25,0],[32,0],[33,0],[40,0],[41,0],[17,0],[28,0],[26,0],[35,0],[34,0],[43,0],[42,0],[11,0],[20,0],[28,0],[35,1],[34,0],[46,1],[47,1],[18,0],[20,0],[22,0],[33,0],[34,0],[45,0],[45,0],[16,0],[26,0],[25,0],[30,3],[37,0],[42,0],[41,0],[14,0],[23,0],[25,0],[34,0],[38,2],[40,0],[46,0],[17,0],[23,0],[24,0],[31,0],[32,0],[47,2],[48,0],[12,0],[21,0],[20,0],[30,3],[36,0],[45,1],[44,0],[13,0],[23,0],[22,0],[34,0],[35,0],[46,2],[47,1],[18,0],[20,0],[21,0],[32,0],[35,0],[46,1],[44,0],[13,0],[26,0],[25,0],[38,1],[37,0],[41,0],[40,0],[15,0],[24,0],[26,0],[38,3],[34,0],[45,0],[42,0],[13,0],[20,0],[21,0],[35,0],[36,0],[45,0],[47,3],[17,0],[23,0],[24,0],[35,0],[36,0],[47,0],[46,0],[17,0],[27,0],[26,0],[35,1],[34,0],[42,0],[41,0],[10,0],[28,0],[24,0],[33,0],[37,1],[48,0],[45,0],[16,0],[22,0],[23,0],[30,0],[31,0],[46,0],[47,0],[17,0],[26,0],[20,0],[38,0],[33,0],[42,0],[45,0],[14,0],[26,0],[25,0],[37,1],[38,2],[40,0],[41,0],[13,0],[24,0],[25,0],[36,0],[36,0],[47,2],[45,0],[14,0],[23,0],[22,0],[31,0],[30,0],[48,0],[47,0],[14,0],[23,0],[25,0],[36,0],[33,0],[44,0],[41,0],[12,0],[28,0]];
+// ===== END DAILY =====
+
+// ===================================================================
+// ===== LOGIC =====
+// ===================================================================
+const SIZE = 4;
+const FOUR_CHANCE = 0.1;
+const UNDO_START = 10;
+const SWAP_START = 3;
+const HISTORY_MAX = 100;
+
+let nextId = 1;
+const T = v => ({ id: nextId++, v });
+
+const emptyBoard = () => Array.from({ length: SIZE }, () => Array(SIZE).fill(null));
+const valuesOf = b => b.map(row => row.map(t => (t ? t.v : 0)));
+const fromValues = vals => vals.map(row => row.map(v => (v ? T(v) : null)));
+
+function canMerge(a, b) {
+  if (!a || !b) return false;
+  if (a === -b) return true;
+  return a === b && a > 0;
+}
+
+function pos(dir, k, i) {
+  switch (dir) {
+    case 'left':  return [k, i];
+    case 'right': return [k, SIZE - 1 - i];
+    case 'up':    return [i, k];
+    case 'down':  return [SIZE - 1 - i, k];
+  }
+}
+
+// Hamle. anims: her eski taş nereye gidiyor (+ ölüyor mu), born: birleşmeden doğan taşlar.
+function move(board, dir) {
+  const nb = emptyBoard();
+  const anims = [], born = [], bursts = [];
+  let moved = false, gained = 0, annihilated = 0;
+
+  for (let k = 0; k < SIZE; k++) {
+    const coords = [...Array(SIZE).keys()].map(i => pos(dir, k, i));
+    const list = coords.map(([r, c]) => board[r][c] && { tile: board[r][c], r, c }).filter(Boolean);
+    let j = 0;
+    for (let i = 0; i < list.length; i++) {
+      const a = list[i], b = list[i + 1];
+      const [r, c] = coords[j];
+      if (b && canMerge(a.tile.v, b.tile.v)) {
+        if (a.tile.v === -b.tile.v) {
+          anims.push({ id: a.tile.id, r, c, die: 'vanish' }, { id: b.tile.id, r, c, die: 'vanish' });
+          bursts.push([r, c]);
+          annihilated++;
+          gained += 2 * Math.abs(a.tile.v);
+        } else {
+          const nt = T(a.tile.v * 2);
+          nb[r][c] = nt;
+          born.push({ tile: nt, r, c });
+          anims.push({ id: a.tile.id, r, c, die: 'merge' }, { id: b.tile.id, r, c, die: 'merge' });
+          gained += nt.v;
+          j++;
+        }
+        moved = true;
+        i++;
+      } else {
+        nb[r][c] = a.tile;
+        anims.push({ id: a.tile.id, r, c });
+        if (a.r !== r || a.c !== c) moved = true;
+        j++;
+      }
+    }
+  }
+  return { board: nb, moved, gained, annihilated, anims, born, bursts };
+}
+
+function canMove(board) {
+  for (let r = 0; r < SIZE; r++)
+    for (let c = 0; c < SIZE; c++) {
+      const v = board[r][c] ? board[r][c].v : 0;
+      if (!v) return true;
+      if (c + 1 < SIZE && canMerge(v, board[r][c + 1] && board[r][c + 1].v)) return true;
+      if (r + 1 < SIZE && canMerge(v, board[r + 1][c] && board[r + 1][c].v)) return true;
+    }
+  return false;
+}
+
+function emptyCells(board) {
+  const e = [];
+  for (let r = 0; r < SIZE; r++)
+    for (let c = 0; c < SIZE; c++)
+      if (!board[r][c]) e.push([r, c]);
+  return e;
+}
+
+function spawn(board, rng = Math.random) {
+  const e = emptyCells(board);
+  if (!e.length) return null;
+  const [r, c] = e[Math.floor(rng() * e.length)];
+  const tile = T(rng() < FOUR_CHANCE ? 4 : 2);
+  board[r][c] = tile;
+  return { tile, r, c };
+}
+
+// İki taşın yerini değiştirir (güçlendirme)
+function swapTiles(board, [r1, c1], [r2, c2]) {
+  const t = board[r1][c1];
+  board[r1][c1] = board[r2][c2];
+  board[r2][c2] = t;
+}
+
+const negativesOf = b => b.flat().filter(t => t && t.v < 0).map(t => -t.v);
+
+function newBoard(level, rng = Math.random) {
+  const b = emptyBoard();
+  level.negs.forEach((n, k) => {
+    let r, c;
+    if (level.at && level.at[k]) [r, c] = level.at[k];
+    else { const e = emptyCells(b); [r, c] = e[Math.floor(rng() * e.length)]; }
+    b[r][c] = T(-n);
+  });
+  spawn(b, rng);
+  spawn(b, rng);
+  return b;
+}
+// ===== END LOGIC =====
+
+// ===================================================================
+// ===== UI =====
+// ===================================================================
+// AdMob reklam birimleri (yayıncı pub-2327448683756849; uygulama kimlikleri iOS ~7830779081,
+// Android ~4353909365). Her yapıda gerçek birimler kullanılır; geliştirirken kendi cihazlarımız
+// AdMob'da test cihazı olarak kayıtlı. Android birimleri henüz yok → Android'de reklam yüklenmez.
+const AD_UNITS = {
+  ios:     { rewarded: 'ca-app-pub-2327448683756849/7902272136', interstitial: 'ca-app-pub-2327448683756849/1640116118' },
+  android: { rewarded: '', interstitial: '' },
+};
+// Her boss İLK kez geçildiğinde verilen ödül
+const BOSS_REWARD = { undo: 3, swap: 3 };
+
+const AD_RULES = {
+  FREE_LEVELS: 3,        // ilk 3 seviye reklamsız
+  EVERY_ATTEMPTS: 3,     // her 3 denemede (seviye başlatma, tekrar dahil) bir geçiş reklamı
+  MIN_GAP_SEC: 120,      // iki reklam arası en az 2 dk
+  CLASSIC_EVERY_GAMES: 2, // klasik: her 2 biten oyunda bir geçiş reklamı ("Yeni oyun"a basınca)
+  HELP_AFTER_LOSSES: 3,  // aynı seviyede üst üste bu kadar kayıpta "Yardım ister misin?"
+  BUTTON_LOCK_MS: 600,   // kazan/kaybet katmanı açılınca butonlar bu kadar kilitli
+};
+
+const $ = id => document.getElementById(id);
+const boardEl = $('board'), overEl = $('over');
+
+// Uygulama içinde (Capacitor) çalışıyor muyuz? Tarayıcıda Native = null.
+const Native = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()
+  ? window.Capacitor.Plugins : null;
+const Prefs = Native && Native.Preferences;
+
+// Kayıt: anında localStorage'a yazılır; uygulamada ayrıca telefonun kalıcı deposuna (Preferences)
+// yedeklenir. iOS web verisini silerse açılışta yedekten geri yüklenir (bkz. restoreFromBackup).
+// Geri yükleme kontrolü bitene kadar yedeğe yazılmaz (yoksa açılıştaki boş oyun gerçek yedeğin üstüne yazar).
+let prefsReady = !Prefs;
+const prefsPending = new Map();   // anahtar → değer (null = sil)
+function mirror(k, v) {
+  if (!Prefs) return;
+  if (!prefsReady) { prefsPending.set(k, v); return; }
+  (v === null ? Prefs.remove({ key: k }) : Prefs.set({ key: k, value: v })).catch(() => {});
+}
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, String(v)); } catch (e) {} mirror(k, String(v)); },
+  remove(k) { try { localStorage.removeItem(k); } catch (e) {} mirror(k, null); },
+  int(k, d) { const n = parseInt(this.get(k, String(d)), 10); return Number.isFinite(n) ? n : d; }
+};
+async function restoreFromBackup() {
+  if (!Prefs) return;
+  const intact = store.get('neg2048-alive', '') === '1';        // web verisi yerinde mi?
+  let restored = 0;
+  if (!intact) {
+    try {
+      const { keys } = await Prefs.keys();
+      for (const k of keys.filter(k => k.startsWith('neg2048-'))) {
+        const { value } = await Prefs.get({ key: k });
+        if (value !== null) { localStorage.setItem(k, value); restored++; }
+      }
+    } catch (e) {}
+  }
+  try { localStorage.setItem('neg2048-alive', '1'); } catch (e) {}
+  if (restored) return location.reload();                      // yedek geri geldi → yeniden yükle
+  prefsReady = true;                                            // bekleyen yazmaları yedeğe aktar
+  for (const [k, v] of prefsPending) mirror(k, v);
+  prefsPending.clear();
+}
+
+// --- tema ---
+// Ayar: sistem (varsayılan) / açık / koyu. Koyu tema CSS'te :root[data-theme="dark"].
+const Theme = {
+  mq: window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null,
+  get pref() { const v = store.get('neg2048-theme', 'system'); return v === 'light' || v === 'dark' ? v : 'system'; },
+  apply() {
+    const dark = this.pref === 'dark' || (this.pref === 'system' && !!this.mq && this.mq.matches);
+    document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+    $('themeColor').content = dark ? '#14171f' : '#eef1f5';
+    // iOS durum çubuğu: DARK = koyu zemin için açık yazı
+    if (Native && Native.StatusBar) Native.StatusBar.setStyle({ style: dark ? 'DARK' : 'LIGHT' }).catch(() => {});
+    document.querySelectorAll('#themeSeg button').forEach(b => b.classList.toggle('on', b.dataset.themeOpt === this.pref));
+  },
+};
+Theme.apply();
+if (Theme.mq) Theme.mq.addEventListener('change', () => Theme.apply());
+
+// --- Android geri tuşu ---
+// En üstteki pencereyi kapatır; kapatılacak bir şey yoksa uygulamayı arka plana alır (çıkmaz, oyun kayıtlı kalır).
+// Reklam pencereleri (ad, inter) geri tuşuyla geçilemez.
+if (Native && Native.App) Native.App.addListener('backButton', () => {
+  const open = id => $(id).classList.contains('show');
+  if (open('ad') || open('inter')) return;
+  if (open('langModal')) return backToSettings();
+  if (open('settings')) return $('settings').classList.remove('show');
+  if (open('card')) return $('cardOk').click();
+  if (open('helpAd')) return $('helpNo').click();
+  if (open('levels')) return $('levels').classList.remove('show');
+  if (swapMode) return exitSwap();
+  Native.App.minimizeApp();
+});
+
+// --- diller ---
+// Metinler locales/xx.js dosyalarında (anahtar → metin). Cihaz dili desteklenmiyorsa İngilizce.
+// Uygulamada gerçek sürüm yerel taraftan okunur (Xcode MARKETING_VERSION / Android versionName); bu yalnız yedek.
+let VERSION = '1.1';
+const LOCALES = window.LOCALES || {};
+const FALLBACK_LANG = 'en';
+function detectLang() {
+  const saved = store.get('neg2048-lang', '');
+  if (LOCALES[saved]) return saved;
+  for (const l of navigator.languages || [navigator.language || '']) {
+    const low = String(l).toLowerCase();
+    if (low.startsWith('zh')) {   // Çince: geleneksel yazı (Tayvan, Hong Kong, Makao) → zh-TW, değilse basitleştirilmiş
+      const zh = /hant|-tw|-hk|-mo/.test(low) ? 'zh-TW' : 'zh';
+      if (LOCALES[zh]) return zh;
+    }
+    const base = low.split('-')[0];
+    if (LOCALES[base]) return base;
+  }
+  return FALLBACK_LANG;
+}
+let lang = detectLang();
+let pluralRules = new Intl.PluralRules(lang);
+function t(key, p = {}) {
+  let s = LOCALES[lang]?.strings[key] ?? LOCALES[FALLBACK_LANG]?.strings[key];
+  if (s === undefined) { console.warn('[i18n] eksik anahtar:', key); return key; }
+  if (typeof s === 'object') s = s[pluralRules.select(Number(p.n) || 0)] ?? s.other;
+  return s.replace(/\{(\w+)\}/g, (_, k) => (p[k] ?? ''));
+}
+function applyStatic() {
+  document.documentElement.lang = lang;
+  document.querySelectorAll('[data-i18n]').forEach(el => (el.innerHTML = t(el.dataset.i18n)));
+  document.querySelectorAll('[data-i18n-aria]').forEach(el => el.setAttribute('aria-label', t(el.dataset.i18nAria)));
+  $('versionText').textContent = t('settings.version', { v: VERSION });
+  $('langCur').textContent = LOCALES[lang]?.name || lang;
+  if ($('langModal').classList.contains('show')) renderLangList();
+}
+// Dil listesi: her dil kendi adıyla + arayüz dilindeki adı (ör. "Français · Fransızca")
+const LANG_TILE = 4;   // dil kodu rozetleri: hepsi aynı taş rengi
+function renderLangList() {
+  let dn = null;
+  try { dn = new Intl.DisplayNames([lang], { type: 'language' }); } catch (e) {}
+  const tick = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>';
+  $('langList').innerHTML = Object.entries(LOCALES).map(([code, l], i) => {
+    const [bg, fg] = colorsOf(LANG_TILE);
+    let local = '';
+    try { local = dn ? dn.of(code) : ''; } catch (e) {}
+    if (local) local = local[0].toLocaleUpperCase(lang) + local.slice(1);
+    const sub = local && local.toLocaleLowerCase(lang) !== l.name.toLocaleLowerCase(lang) ? `<small>${local}</small>` : '';
+    return `<button class="langopt${code === lang ? ' on' : ''}" data-code="${code}" lang="${code}">
+      <span class="code" style="background:${bg};color:${fg}">${l.badge || code.toUpperCase()}</span>
+      <span class="names"><b>${l.name}</b>${sub}</span>
+      <span class="tick">${tick}</span>
+    </button>`;
+  }).join('');
+}
+function setLang(code) {
+  if (!LOCALES[code]) return;
+  lang = code; pluralRules = new Intl.PluralRules(lang);
+  store.set('neg2048-lang', code);
+  applyStatic();
+  updateHUD();
+  if ($('levels').classList.contains('show')) openLevels();
+}
+
+let board, score = 0, best = 0, state = 'playing', movesUsed = 0;
+let levelIdx = Math.min(LEVELS.length - 1, Math.max(0, store.int('neg2048-level', 0)));
+let history = [];
+let undos = Math.max(0, store.int('neg2048-undos', UNDO_START));
+let swaps = Math.max(0, store.int('neg2048-swaps', SWAP_START));
+let swapMode = false, swapFirst = null;
+let mode = store.get('neg2048-mode', 'levels') === 'classic' ? 'classic' : 'levels';
+let keepPlaying = false;      // klasik: 2048'den sonra devam
+let levelsSaved = null;       // modlar arası geçişte seviye oyunu bellekte kalsın
+const CLASSIC_GOAL = 2048;
+const isClassic = () => mode === 'classic';
+
+// ===== GÜNLÜK BULMACA =====
+// Herkes aynı gün aynı bulmacayı oynar. Kurallar bot/daily.js ile birebir aynı (orada üretilip doğrulanır):
+//   tohum = fnv1a("gün|salt"); negatiflerin yeri ve ilk iki taş mulberry32(tohum) ile;
+//   sonraki her taş o anki durumdan (tohum|hamle|tahta) → aynı durumda herkese aynı taş, geri al da değiştirmez.
+const DAILY_EPOCH = Date.UTC(2026, 10, 9);            // 9 Kasım 2026 (Pazartesi) = #1
+const fnv1a = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619); return h >>> 0; };
+const mulberry32 = seed => () => {
+  seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+  let x = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+  x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x;
+  return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+};
+const dayNumber = (now = new Date()) => Math.floor((Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) - DAILY_EPOCH) / 864e5) + 1;
+function dailyFor(d) {
+  const e = DAILY[d - 1];
+  return e ? { d, seed: fnv1a(`${d}|${e[1]}`), level: LEVELS[e[0]] } : null;
+}
+let daily = null;                                      // { d, seed, level } — günlük moddayken
+const isDaily = () => mode === 'daily';
+const curLevel = () => (isDaily() ? daily.level : LEVELS[levelIdx]);
+const spawnRng = () => (isDaily()
+  ? mulberry32(fnv1a(`${daily.seed}|${movesUsed}|${valuesOf(board).flat().join(',')}`))
+  : Math.random);
+// Seri: dün ya da bugün çözüldüyse devam ediyor
+function dailyStreak() {
+  const done = store.int('neg2048-daily-done', 0);
+  return done >= dayNumber() - 1 ? store.int('neg2048-daily-streak', 0) : 0;
+}
+const curBestKey = () => (isClassic() ? 'neg2048-best-classic' : isDaily() ? 'neg2048-best-daily-' + daily.d : bestKey(levelIdx));
+let pending = null, pendingTimer = 0;
+const tileEls = new Map();
+const bestKey = i => 'neg2048-best-L' + i;
+const doneKey = i => 'neg2048-done-L' + i;
+const isBoss = i => (i + 1) % 10 === 0;
+
+// --- renkler ---
+// pozitif: klasik sıcak (krem → sarı → turuncu → kırmızı)
+const POS = {
+  2:    ['#fff3d1', '#6b4a14'],
+  4:    ['#ffe3a3', '#6b4a14'],
+  8:    ['#ffc85c', '#5a3a00'],
+  16:   ['#ffad42', '#4a2a00'],
+  32:   ['#ff9236', '#ffffff'],
+  64:   ['#ff7430', '#ffffff'],
+  128:  ['#f65a2c', '#ffffff'],
+  256:  ['#e8432a', '#ffffff'],
+  512:  ['#d32f2a', '#ffffff'],
+  1024: ['#b62228', '#ffffff'],
+  2048: ['#921826', '#ffffff'],
+};
+// negatif: mavi, büyüdükçe koyulaşan
+const NEG = {
+  16:   ['#a9d1ff', '#0d2463'],
+  32:   ['#7fb5f8', '#0d2463'],
+  64:   ['#5596ee', '#ffffff'],
+  128:  ['#3878da', '#ffffff'],
+  256:  ['#285fc2', '#ffffff'],
+  512:  ['#1d4aa6', '#ffffff'],
+  1024: ['#163887', '#ffffff'],
+  2048: ['#0e2766', '#ffffff'],
+};
+const colorsOf = v => v < 0 ? (NEG[-v] || ['#0a1a47', '#ffffff']) : (POS[v] || ['#5e1020', '#ffffff']);
+const label = v => (v < 0 ? '−' + (-v) : String(v));
+const miniHTML = (n, gone) => {
+  const [bg, fg] = colorsOf(-n);
+  return `<span class="mini${gone ? ' gone' : ''}" style="background:${bg};color:${fg}">${label(-n)}</span>`;
+};
+
+let readySet = new Set();
+function paint(el, v) {
+  const inner = el.firstChild;
+  const text = label(v);
+  inner.textContent = text;
+  el.dataset.len = Math.min(text.length, 5);
+  el.dataset.v = v;
+  el.classList.toggle('ready', v > 0 && readySet.has(v));
+  const [bg, fg] = colorsOf(v);
+  inner.style.background = bg;
+  inner.style.color = fg;
+  inner.style.boxShadow = v < 0 ? 'inset 0 0 0 2px rgba(255,255,255,.25), 0 2px 0 rgba(var(--sh),.18)' : '';
+}
+function refreshReady() {
+  readySet = new Set(negativesOf(board));
+  for (const el of tileEls.values()) {
+    const v = +el.dataset.v;
+    el.classList.toggle('ready', v > 0 && readySet.has(v));
+  }
+}
+
+// --- taş DOM ---
+function setPos(el, r, c) { el.style.setProperty('--r', r); el.style.setProperty('--c', c); }
+function addTile(tile, r, c, anim) {
+  const el = document.createElement('div');
+  el.className = 'tile' + (anim ? ' ' + anim : '');
+  el.appendChild(document.createElement('div')).className = 'in';
+  setPos(el, r, c);
+  paint(el, tile.v);
+  boardEl.appendChild(el);
+  tileEls.set(tile.id, el);
+}
+function renderAll(anim) {
+  boardEl.querySelectorAll('.tile, .burst').forEach(n => n.remove());
+  tileEls.clear();
+  readySet = new Set(negativesOf(board));
+  for (let r = 0; r < SIZE; r++)
+    for (let c = 0; c < SIZE; c++)
+      if (board[r][c]) addTile(board[r][c], r, c, anim);
+}
+function buildCells() {
+  for (let r = 0; r < SIZE; r++)
+    for (let c = 0; c < SIZE; c++) {
+      const d = document.createElement('div');
+      d.className = 'cell'; setPos(d, r, c);
+      boardEl.insertBefore(d, overEl);
+    }
+}
+
+// --- HUD ---
+const outOfMoves = () => !isClassic() && !!curLevel().moves && movesUsed >= curLevel().moves;
+// Hak bitince rozet "▶ Reklam" der; Günlük bulmacada reklam olmadığı için orada 0 gösterilir.
+const powerBadge = (el, n) => {
+  if (n > 0 || isDaily()) { el.textContent = n; el.classList.remove('ad'); }
+  else { el.textContent = t('badge.ad'); el.classList.add('ad'); }
+};
+
+function updateHUD() {
+  $('score').textContent = score;
+  $('best').textContent = best;
+  document.querySelectorAll('#modeSeg button').forEach(b => b.classList.toggle('on', b.dataset.mode === mode));
+  $('titleMinus').style.display = isClassic() ? 'none' : '';
+  const streak = isDaily() ? dailyStreak() : 0;
+  $('levelLabel').innerHTML = isClassic()
+    ? t('hud.classic')
+    : isDaily()
+    ? t('hud.daily', { n: daily.d })
+    : t('hud.level', { n: levelIdx + 1 }) + (isBoss(levelIdx) ? `<span class="boss-tag">${t('hud.boss')}</span>` : '');
+
+  // kalan negatifler (yok olanlar soluk) + hamle sınırı
+  const left = negativesOf(board);
+  const lv = isClassic() ? { negs: [] } : curLevel();
+  let chips = '';
+  if (isClassic()) {
+    const top = Math.max(0, ...board.flat().filter(Boolean).map(t => t.v));
+    const [bg, fg] = colorsOf(top || 2);
+    chips += `<span class="chip">${t('hud.biggest')} <span class="mini" style="background:${bg};color:${fg}">${top}</span></span>`;
+  }
+  chips += lv.negs.map(n => {
+    const i = left.indexOf(n);
+    if (i >= 0) { left.splice(i, 1); return miniHTML(n, false); }
+    return miniHTML(n, true);
+  }).join('');
+  $('negChips').innerHTML = chips;
+
+  // hamle çubuğu: hamle (/ sınır) + şu an gidilen yıldız + sonraki eşik
+  const bar = $('movebar');
+  if (isClassic()) {
+    bar.className = 'row movebar';
+    bar.innerHTML = `<span>${t('hud.moves', { n: movesUsed })}</span>`;
+  } else {
+    const rem = lv.moves ? lv.moves - movesUsed : Infinity;
+    bar.className = 'row movebar' + (rem <= Math.max(5, (lv.moves || 0) * 0.15) ? ' warn' : '');
+    const st = starsFor(lv, movesUsed);
+    const next = lv.stars && st > 1 ? `≤ ${lv.stars[3 - st]}` : '';
+    bar.innerHTML = `<span>${t('hud.moves', { n: movesUsed })}${lv.moves ? ' / ' + lv.moves : ''}${streak ? ` · 🔥 ${streak}` : ''}</span>`
+      + (lv.stars ? starsHTML(st, next ? `<small>${next}</small>` : '') : '');
+  }
+
+  const noAds = isDaily();             // günlükte reklam yok
+  $('undoBtn').disabled = swapMode || !history.length || state === 'won' || (noAds && undos <= 0);
+  powerBadge($('undoBadge'), undos);
+  const swapBtn = $('swapBtn');
+  swapBtn.classList.toggle('active', swapMode);
+  swapBtn.disabled = !swapMode && (state === 'won' || outOfMoves() || countTiles() < 2 || (noAds && swaps <= 0));
+  $('swapLabel').textContent = swapMode ? t('cancel') : t('swap');
+  $('swapBadge').style.display = swapMode ? 'none' : '';
+  powerBadge($('swapBadge'), swaps);
+
+  const help = $('help');
+  help.classList.toggle('swap', swapMode);
+  help.innerHTML = swapMode
+    ? (swapFirst ? t('hint.swapSecond') : t('hint.swapFirst'))
+    : isClassic()
+      ? t('hint.classic', { goal: CLASSIC_GOAL })
+      : readyHint() || (isDaily() ? t('hint.daily') : t('hint.levels'));
+
+  const btns = $('overBtns');
+  btns.innerHTML = '';
+  const mk = (text, cls, fn) => {
+    const b = document.createElement('button');
+    b.className = 'btn small ' + cls; b.textContent = text; b.onclick = fn; btns.appendChild(b);
+  };
+  $('overStars').innerHTML = '';
+  if (isClassic() && state === 'won') {
+    $('overTitle').textContent = `${CLASSIC_GOAL}!`;
+    $('overMsg').textContent = t('over.movesScore', { n: movesUsed, score });
+    mk(t('over.continue'), 'primary', () => { keepPlaying = true; state = 'playing'; saveClassic(); updateHUD(); });
+    mk(t('over.newGame'), '', newClassicAfterGame);
+  } else if (isClassic() && state === 'lost') {
+    $('overTitle').textContent = t('over.gameOver');
+    $('overMsg').textContent = t('over.movesScore', { n: movesUsed, score });
+    mk(undos > 0 ? t('over.undoN', { n: undos }) : t('over.undoAd'), 'primary', undo);
+    mk(swaps > 0 ? t('over.swapN', { n: swaps }) : t('over.swapAd'), '', toggleSwap);
+    mk(t('over.newGame'), '', newClassicAfterGame);
+  } else if (isDaily() && state === 'won') {
+    $('overTitle').textContent = t('daily.solved');
+    if (!$('overStars').dataset.shown) {
+      $('overStars').innerHTML = [0, 1, 2].map(k => `<span class="${k < lastStars ? '' : 'off'}">★</span>`).join('');
+    }
+    const lvD = curLevel();
+    const tip = lastStars < 3 && lvD.stars ? ' · ' + (lastStars === 1 ? t('over.tip2', { n: lvD.stars[0] }) : t('over.tip3', { n: lvD.stars[1] })) : '';
+    $('overMsg').textContent = t('over.moves', { n: movesUsed }) + tip;
+    if (lastReward) $('overMsg').innerHTML += `<br><b class="reward">${t('daily.reward')}</b>`;
+    $('overMsg').innerHTML += `<br>${t('daily.tomorrow')}`;
+    mk(t('daily.share'), 'primary', e => shareDaily(e.currentTarget));
+    if (lastStars < 3) mk(t('over.retryStar'), '', startDaily);
+    else mk(t('over.levels'), '', () => switchMode('levels'));
+  } else if (isDaily() && state === 'lost') {
+    const oom = outOfMoves();
+    $('overTitle').textContent = oom ? t('over.outOfMoves') : t('over.noMoves');
+    $('overMsg').textContent = t('over.moves', { n: movesUsed });
+    if (undos > 0) mk(t('over.undoN', { n: undos }), 'primary', undo);
+    if (!oom && swaps > 0) mk(t('over.swapN', { n: swaps }), '', toggleSwap);
+    mk(t('over.retry'), undos > 0 ? '' : 'primary', startDaily);
+  } else if (state === 'won') {
+    const last = levelIdx === LEVELS.length - 1;
+    $('overTitle').textContent = last ? t('over.allDone') : isBoss(levelIdx) ? t('over.bossBeaten') : t('over.cleared');
+    if (!$('overStars').dataset.shown) {
+      $('overStars').innerHTML = [0, 1, 2].map(k => `<span class="${k < lastStars ? '' : 'off'}">★</span>`).join('');
+    }
+    const lv2 = LEVELS[levelIdx];
+    const tip = lastStars < 3 && lv2.stars ? ' · ' + (lastStars === 1 ? t('over.tip2', { n: lv2.stars[0] }) : t('over.tip3', { n: lv2.stars[1] })) : '';
+    $('overMsg').textContent = t('over.moves', { n: movesUsed }) + tip;
+    if (lastReward) $('overMsg').innerHTML += `<br><b class="reward">${t('over.bossReward', { u: lastReward.undo, s: lastReward.swap })}</b>`;
+    if (!last) mk(t('over.next'), 'primary', nextLevel);
+    if (lastStars < 3) mk(t('over.retryStar'), '', () => startLevel(levelIdx));
+    else mk(t('over.levels'), '', openLevels);
+  } else if (state === 'lost') {
+    const oom = outOfMoves();
+    $('overTitle').textContent = oom ? t('over.outOfMoves') : t('over.noMoves');
+    $('overMsg').textContent = t('over.levelScore', { n: levelIdx + 1, score });
+    mk(undos > 0 ? t('over.undoN', { n: undos }) : t('over.undoAd'), 'primary', undo);
+    if (!oom) mk(swaps > 0 ? t('over.swapN', { n: swaps }) : t('over.swapAd'), '', toggleSwap);
+    mk(t('over.retry'), '', () => startLevel(levelIdx));
+  }
+  const showOver = state !== 'playing' && !swapMode;
+  if (showOver && !overEl.classList.contains('show')) { overShownAt = Date.now(); if (Native) NativeAds.warm(); }
+  overEl.classList.toggle('show', showOver);
+  const wait = AD_RULES.BUTTON_LOCK_MS - (Date.now() - overShownAt);
+  if (showOver && wait > 0) {
+    btns.querySelectorAll('button').forEach(b => (b.disabled = true));
+    clearTimeout(unlockTimer);
+    unlockTimer = setTimeout(() => btns.querySelectorAll('button').forEach(b => (b.disabled = false)), wait);
+  }
+}
+let overShownAt = 0, unlockTimer = 0;
+
+// hedef taş hazırsa ipucu
+function readyHint() {
+  if (state !== 'playing') return '';
+  const ready = negativesOf(board).find(n => board.flat().some(t => t && t.v === n));
+  return ready ? t('hint.ready', { n: ready }) : '';
+}
+
+const countTiles = () => board.flat().filter(Boolean).length;
+
+function showGain(n) {
+  if (!n) return;
+  const s = document.createElement('div');
+  s.className = 'plus'; s.textContent = '+' + n;
+  $('scoreBox').appendChild(s);
+  setTimeout(() => s.remove(), 700);
+}
+
+// --- seviye seçimi ---
+function openLevels() {
+  exitSwap();
+  const grid = $('levelGrid');
+  let html = '', done = 0, total = 0;
+  LEVELS.forEach(({ negs, moves, at }, i) => {
+    if (i % 10 === 0) {
+      const ws = LEVELS.slice(i, i + 10).reduce((s, _, k) => s + bestStars(i + k), 0);
+      html += `<div class="world">${t('levels.world', { n: i / 10 + 1 })} · ${i + 1}–${Math.min(i + 10, LEVELS.length)} · ${ws}/${Math.min(10, LEVELS.length - i) * 3} ★</div>`;
+    }
+    const st = bestStars(i);
+    if (st) done++;
+    total += st;
+    const meta = [moves ? t('levels.moves', { n: moves }) : '', at ? t('levels.fixed') : ''].filter(Boolean).join(' · ') || '&nbsp;';
+    html += `<button class="lv${i === levelIdx ? ' current' : ''}${isBoss(i) ? ' boss' : ''}" data-i="${i}">
+      <span class="num">${i + 1}${isBoss(i) ? '<span class="boss-tag">' + t('hud.boss') + '</span>' : ''}</span>
+      <span class="negs">${negs.map(n => miniHTML(n, false)).join('')}</span>
+      ${starsHTML(st)}
+      <span class="meta">${meta}</span>
+    </button>`;
+  });
+  grid.innerHTML = html;
+  $('levelsSub').textContent = t('levels.sub', { stars: total, maxStars: LEVELS.length * 3, done, total: LEVELS.length, n: LEVELS.length });
+  $('levels').classList.add('show');
+  const cur = grid.querySelector('.current');
+  if (cur) cur.scrollIntoView({ block: 'center' });
+}
+$('levelGrid').addEventListener('click', e => {
+  const b = e.target.closest('.lv');
+  if (!b) return;
+  $('levels').classList.remove('show');
+  startLevel(+b.dataset.i);
+});
+$('levelsClose').addEventListener('click', () => $('levels').classList.remove('show'));
+$('levelsBtn').addEventListener('click', openLevels);
+
+// --- ses + titreşim (ses dosyası yok, WebAudio ile üretiliyor) ---
+// Mobilde titreşim: Capacitor Haptics'e taşınacak (iOS web'de navigator.vibrate yok).
+const Fx = {
+  ctx: null,
+  get sound() { return store.get('neg2048-sound', '1') === '1'; },
+  get haptic() { return store.get('neg2048-haptic', '1') === '1'; },
+  // Ses bağlamını açılıştan hemen sonra (askıda) kur: ilk dokunuşta kurmak ilk kaydırmayı takıltıyordu.
+  // Dokunuşta yalnız resume() çağrılır, o ucuz.
+  create() {
+    if (!this.ctx) { try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+  },
+  unlock() {
+    this.create();
+    if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+  },
+  tone(freq, dur = 0.09, { type = 'sine', vol = 0.07, delay = 0, to = 0 } = {}) {
+    if (!this.sound || !this.ctx) return;
+    const t = this.ctx.currentTime + delay;
+    const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, t);
+    if (to) o.frequency.exponentialRampToValueAtTime(to, t + dur);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(this.ctx.destination);
+    o.start(t); o.stop(t + dur + 0.02);
+  },
+  buzz(ms) {
+    if (!this.haptic) return;
+    if (Native && Native.Haptics) Native.Haptics.impact({ style: ms < 15 ? 'LIGHT' : ms < 35 ? 'MEDIUM' : 'HEAVY' }).catch(() => {});
+    else if (navigator.vibrate) navigator.vibrate(ms);
+  },
+  slide() { this.tone(180, 0.05, { type: 'triangle', vol: 0.025 }); },
+  merge(v) { const n = Math.log2(v); this.tone(260 * Math.pow(2, n / 7), 0.11, { type: 'triangle', vol: 0.06 }); this.buzz(6); },
+  annihilate() {
+    this.tone(900, 0.28, { type: 'sine', vol: 0.07, to: 120 });
+    this.tone(1400, 0.18, { type: 'triangle', vol: 0.03, delay: 0.03, to: 300 });
+    this.buzz(25);
+  },
+  swap() { this.tone(440, 0.08, { type: 'sine', vol: 0.05, to: 660 }); this.tone(660, 0.08, { type: 'sine', vol: 0.05, delay: 0.08, to: 440 }); },
+  click() { this.tone(520, 0.04, { type: 'square', vol: 0.02 }); },
+  undo() { this.tone(500, 0.12, { type: 'sine', vol: 0.05, to: 300 }); },
+  win() { [523, 659, 784, 1047].forEach((f, i) => this.tone(f, 0.16, { type: 'triangle', vol: 0.07, delay: i * 0.09 })); this.buzz(30); },
+  star(i) { this.tone(880 * Math.pow(1.26, i), 0.14, { type: 'sine', vol: 0.06 }); },
+  lose() { [392, 330, 262].forEach((f, i) => this.tone(f, 0.2, { type: 'sine', vol: 0.06, delay: i * 0.13 })); this.buzz(40); },
+};
+document.addEventListener('pointerdown', () => Fx.unlock(), { capture: true });
+document.addEventListener('keydown', () => Fx.unlock(), { capture: true });
+
+// --- yıldızlar ---
+// level.stars = [★★ eşiği, ★★★ eşiği] (hamle). Kazanmak = en az ★.
+const starKey = i => 'neg2048-stars-L' + i;
+const starsFor = (lv, moves) => !lv.stars ? 3 : moves <= lv.stars[1] ? 3 : moves <= lv.stars[0] ? 2 : 1;
+const bestStars = i => {
+  const n = store.int(starKey(i), 0);
+  return n || (store.get(doneKey(i), '') === '1' ? 1 : 0);
+};
+const starsHTML = (n, extra = '') => `<span class="stars">${[0, 1, 2].map(k => k < n ? '★' : '<span class="off">★</span>').join('')}${extra}</span>`;
+let lastStars = 0;   // son kazanılan seviyenin yıldızı (katman için)
+let lastReward = null; // son kazanılan seviyenin boss ödülü (yoksa null)
+const rewardKey = i => 'neg2048-reward-L' + i;
+
+// --- tanıtım kartları (her biri bir kez) ---
+const cardQueue = [];
+function showCard(key, title, body) {
+  if (key && store.get('neg2048-seen-' + key, '') === '1') return;
+  cardQueue.push({ key, title, body });
+  if (cardQueue.length === 1) setTimeout(nextCard, 350);
+}
+function nextCard() {
+  const c = cardQueue[0];
+  if (!c) return;
+  if (document.querySelector('.modal.show')) return setTimeout(nextCard, 500);
+  $('cardTitle').textContent = c.title;
+  $('cardBody').innerHTML = c.body;
+  $('card').classList.add('show');
+  $('cardOk').onclick = () => {
+    Fx.click();
+    if (c.key) store.set('neg2048-seen-' + c.key, '1');
+    $('card').classList.remove('show');
+    cardQueue.shift();
+    if (cardQueue.length) setTimeout(nextCard, 250);
+  };
+}
+const demoTile = v => { const [bg, fg] = colorsOf(v); return `<span class="t" style="background:${bg};color:${fg}">${label(v)}</span>`; };
+const HOW_TO = () => `
+  <div class="demo">${demoTile(8)}+${demoTile(8)}→${demoTile(16)}</div>
+  <div class="demo" style="margin:10px 0 12px">${demoTile(16)}+${demoTile(-16)}→<span class="t zero">0</span></div>
+  <ul>${t('card.howto.body')}</ul>`;
+function levelIntroCards(i) {
+  const lv = LEVELS[i];
+  if (i === 0) showCard('howto', t('card.howto.title'), HOW_TO());
+  if (i >= 1 && lv.stars) showCard('stars', t('card.stars.title'), `<ul>${t('card.stars.body')}</ul>`);
+  if (lv.moves) showCard('limit', t('card.limit.title'), t('card.limit.body', { n: lv.moves }));
+  if (isBoss(i)) showCard('boss', t('card.boss.title'), t('card.boss.body'));
+  if (negsHaveFour(lv)) showCard('four', t('card.four.title'), t('card.four.body'));
+}
+const negsHaveFour = lv => lv.negs.length >= 4;
+
+// --- ayarlar ---
+function openSettings() {
+  if (blocked()) return;
+  exitSwap();
+  $('swSound').classList.toggle('on', Fx.sound);
+  $('swHaptic').classList.toggle('on', Fx.haptic);
+  $('settings').classList.add('show');
+}
+$('settingsBtn').addEventListener('click', () => { Fx.click(); openSettings(); });
+$('settingsClose').addEventListener('click', () => { Fx.click(); $('settings').classList.remove('show'); });
+$('swSound').addEventListener('click', () => { store.set('neg2048-sound', Fx.sound ? '0' : '1'); $('swSound').classList.toggle('on', Fx.sound); Fx.click(); });
+$('swHaptic').addEventListener('click', () => { store.set('neg2048-haptic', Fx.haptic ? '0' : '1'); $('swHaptic').classList.toggle('on', Fx.haptic); Fx.buzz(20); });
+$('howBtn').addEventListener('click', () => { $('settings').classList.remove('show'); showCard(null, t('card.howto.title'), HOW_TO()); });
+const backToSettings = () => { $('langModal').classList.remove('show'); $('settings').classList.add('show'); };
+$('langBtn').addEventListener('click', () => {
+  Fx.click();
+  renderLangList();
+  $('settings').classList.remove('show');
+  $('langModal').classList.add('show');
+});
+$('langList').addEventListener('click', e => {
+  const b = e.target.closest('.langopt');
+  if (!b) return;
+  Fx.click(); Fx.buzz(8);
+  const changed = b.dataset.code !== lang;
+  setLang(b.dataset.code);
+  setTimeout(backToSettings, changed ? 260 : 0);
+});
+$('themeSeg').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  Fx.click();
+  store.set('neg2048-theme', b.dataset.themeOpt);
+  Theme.apply();
+});
+$('langBack').addEventListener('click', () => { Fx.click(); backToSettings(); });
+// AB'de zorunlu: izin tercihlerini sonradan değiştirme (UMP formu)
+$('privacyChoicesBtn').addEventListener('click', () => { Fx.click(); if (AdMobP) AdMobP.showPrivacyOptionsForm().catch(() => {}); });
+// Web sayfaları (Little Lemma sitesi). Uygulamada dış adrese gitmek Safari'de açılır.
+const SITE = 'https://littlelemmastudio.github.io/eksi2048/';
+function openExternal(url) {
+  Fx.click();
+  if (Native) location.href = url;          // Capacitor dış alan adını Safari'ye yollar
+  else window.open(url, '_blank', 'noopener');
+}
+$('privacyBtn').addEventListener('click', () => openExternal(SITE + 'privacy/#' + lang));
+$('supportBtn').addEventListener('click', () => openExternal(SITE + 'support/#' + lang));
+// Sorun bildir: e-posta uygulaması, teşhis bilgisi önceden yazılı (kişisel veri yok)
+const SUPPORT_EMAIL = 'littlelemmastudio@gmail.com';
+$('reportBtn').addEventListener('click', () => {
+  const where = mode === 'classic' ? 'classic' : mode === 'daily' ? 'daily #' + dayNumber() : 'level ' + (levelIdx + 1);
+  const body = t('report.body') + '\n\n\n---\n'
+    + `−2048 ${VERSION} · ${where} · ${lang}\n${navigator.userAgent}`;
+  openExternal(`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('−2048 · ' + t('settings.report'))}&body=${encodeURIComponent(body)}`);
+});
+$('resetBtn').addEventListener('click', () => {
+  if (!confirm(t('settings.resetConfirm'))) return;
+  try {
+    Object.keys(localStorage).filter(k => k.startsWith('neg2048-') && !/-(sound|haptic|lang|theme|undos|swaps|reward|ad-)/.test(k))
+      .forEach(k => store.remove(k));
+  } catch (e) {}
+  $('settings').classList.remove('show');
+  levelsSaved = null;
+  if (isClassic()) startClassic(); else startLevel(0);
+});
+
+// --- reklamlar (sahte) ---
+// Mobilde: Ads.rewarded → AdMob RewardedAd, Ads.interstitial → AdMob InterstitialAd
+const adState = {
+  get attempts() { return store.int('neg2048-ad-attempts', 0); },
+  set attempts(v) { store.set('neg2048-ad-attempts', v); },
+  get lastAt() { return store.int('neg2048-ad-last', 0); },
+  set lastAt(v) { store.set('neg2048-ad-last', v); },
+  get skipNext() { return store.get('neg2048-ad-skip', '') === '1'; },
+  set skipNext(v) { store.set('neg2048-ad-skip', v ? '1' : ''); },
+};
+let lossStreak = 0;          // bu seviyede üst üste kayıp
+let attemptLost = false;     // bu denemede kayıp zaten sayıldı mı (geri al sonrası tekrar sayılmasın)
+
+// Bu platformun reklam birimleri; tanımlı değilse null (reklam yok).
+function adUnits() {
+  const platform = window.Capacitor && window.Capacitor.getPlatform ? window.Capacitor.getPlatform() : 'web';
+  const u = AD_UNITS[platform];
+  return u && u.rewarded && u.interstitial ? u : null;
+}
+
+// ===================================================================
+// ===== YEREL: İZİN (UMP + ATT), ADMOB, FIREBASE =====
+// Tarayıcıda bunların hiçbiri yok (Native = null) → reklam çıkmaz, track() boş.
+// ===================================================================
+const AdMobP = Native && Native.AdMob;
+const FA = Native && Native.FirebaseAnalytics;
+const CL = Native && Native.FirebaseCrashlytics;
+
+// Analytics olayı. Adlar kısa, sabit, kişisel veri içermez.
+function track(name, params = {}) {
+  if (FA) FA.logEvent({ name, params }).catch(() => {});
+}
+
+// İzin akışı: önce Google UMP (AB/İngiltere'de izin penceresi), sonra iOS izleme izni (ATT).
+// Firebase izin modu: izin gerekmeyen bölgelerde açık; AB/İngiltere'de temkinli → kapalı
+// (Firebase o zaman çerezsiz/modellenmiş ölçüm yapar; reklam SDK'sı kendi TCF kararını okur).
+const Consent = {
+  async run() {
+    if (!AdMobP) return false;
+    let info = null;
+    try {
+      info = await AdMobP.requestConsentInfo();
+      if (info.isConsentFormAvailable && info.status === 'REQUIRED') info = await AdMobP.showConsentForm();
+    } catch (e) {}
+    $('privacyChoicesBtn').style.display = info && info.privacyOptionsRequirementStatus === 'REQUIRED' ? '' : 'none';
+    const outside = !!info && info.status === 'NOT_REQUIRED';
+    if (FA) for (const type of ['ANALYTICS_STORAGE', 'AD_STORAGE', 'AD_USER_DATA', 'AD_PERSONALIZATION'])
+      FA.setConsent({ type, status: outside ? 'GRANTED' : 'DENIED' }).catch(() => {});
+    try {
+      const { status } = await AdMobP.trackingAuthorizationStatus();
+      if (status === 'notDetermined') await AdMobP.requestTrackingAuthorization();
+    } catch (e) {}
+    return !!info && info.canRequestAds;
+  },
+};
+
+// Gerçek reklamlar. Önceden yüklenir; hazır değilse geçiş reklamı sessizce atlanır,
+// ödüllü reklamda "şu an reklam yok" denir.
+const NativeAds = {
+  ready: null, units: null,
+  loaded: { rewarded: false, interstitial: false },
+  loading: { rewarded: null, interstitial: null },
+  init() {
+    if (!this.ready) this.ready = (async () => {
+      if (!(await Consent.run())) return false;
+      this.units = adUnits();
+      if (!this.units) return false;
+      await AdMobP.initialize({});
+      // Reklam yüklemek ana iş parçacığını meşgul ediyor: açılıştaki ilk oyunda kaydırma takılıyordu
+      // (iPad/Mac'te belirgin). Bu yüzden ilk sonuç ekranında ya da en geç 25 sn sonra yüklenir.
+      if (this.wantWarm) this.warm(); else this.warmTimer = setTimeout(() => this.warm(), 25000);
+      return true;
+    })().catch(() => false).then(ok => { if (!ok) this.ready = null; return ok; });
+    return this.ready;
+  },
+  warm() {
+    this.wantWarm = true;
+    if (this.warmed || !this.units) return;
+    this.warmed = true; clearTimeout(this.warmTimer);
+    this.prepare('rewarded');
+    setTimeout(() => this.prepare('interstitial'), 1500);   // ikisi aynı anda yüklenmesin
+  },
+  prepare(kind) {
+    this.loaded[kind] = false;
+    const p = kind === 'rewarded'
+      ? AdMobP.prepareRewardVideoAd({ adId: this.units.rewarded })
+      : AdMobP.prepareInterstitial({ adId: this.units.interstitial });
+    this.loading[kind] = p.then(() => { this.loaded[kind] = true; })
+     .catch(() => setTimeout(() => this.prepare(kind), 60000))   // reklam bulunamadı → 1 dk sonra
+     .finally(() => { this.loading[kind] = null; });
+  },
+  // Olay tabanlı: "show" sözü yalnız ödülde döner, kapatmada dönmez.
+  show(kind) {
+    return new Promise(async resolve => {
+      if (!(await this.init())) return resolve(null);   // null = reklam yok
+      this.warm();
+      // Yükleme sürüyorsa (ör. sonuç ekranı yeni açıldı) en çok 8 sn bekle.
+      if (!this.loaded[kind] && this.loading[kind]) await Promise.race([this.loading[kind], new Promise(r => setTimeout(r, 8000))]);
+      if (!this.loaded[kind]) return resolve(null);
+      const ev = kind === 'rewarded'
+        ? { reward: 'onRewardedVideoAdReward', end: 'onRewardedVideoAdDismissed', fail: 'onRewardedVideoAdFailedToShow' }
+        : { end: 'interstitialAdDismissed', fail: 'interstitialAdFailedToShow' };
+      let rewarded = false;
+      const hs = [];
+      const finish = ok => { hs.forEach(h => h.remove()); this.prepare(kind); resolve(ok); };
+      if (ev.reward) hs.push(await AdMobP.addListener(ev.reward, () => { rewarded = true; }));
+      hs.push(await AdMobP.addListener(ev.end, () => finish(kind === 'rewarded' ? rewarded : true)));
+      hs.push(await AdMobP.addListener(ev.fail, () => finish(null)));
+      this.loaded[kind] = false;
+      (kind === 'rewarded' ? AdMobP.showRewardVideoAd() : AdMobP.showInterstitial()).catch(() => {});
+    });
+  },
+};
+
+// Çökme raporu: yerel çökmeleri Crashlytics kendisi yakalar; JS hatalarını biz iletiriz.
+if (CL) {
+  const report = msg => CL.recordException({ message: String(msg).slice(0, 500) }).catch(() => {});
+  window.addEventListener('error', e => report(e.message + ' @' + (e.filename || '').split('/').pop() + ':' + e.lineno));
+  window.addEventListener('unhandledrejection', e => report('promise: ' + (e.reason && e.reason.message || e.reason)));
+}
+
+const Ads = {
+  // Önce bizim onay penceremiz (ne kazanacağını söyler), sonra gerçek ödüllü reklam.
+  // Reklam yüklenemediyse ya da hazır değilse (tarayıcı dahil) oyuncu cezalandırılmaz: hak yine verilir.
+  // Reklamı yarıda kapatırsa hak verilmez.
+  rewarded(msg, done) {
+    const ad = $('ad'), claim = $('adClaim');
+    let finished = false;
+    $('adMsg').textContent = msg;
+    claim.textContent = t('ad.watch');
+    $('adCancel').textContent = t('ad.cancel');
+    claim.disabled = false;
+    ad.classList.add('show');
+    const close = (granted, watched) => {
+      if (finished) return; finished = true;
+      ad.classList.remove('show');
+      claim.onclick = $('adCancel').onclick = null;
+      if (watched) { adState.lastAt = Date.now(); adState.skipNext = true; }
+      track('ad_reward', { granted: granted ? 1 : 0, shown: watched ? 1 : 0 });
+      done(granted);
+    };
+    claim.onclick = () => {
+      claim.disabled = true;
+      NativeAds.show('rewarded').then(r => {
+        if (r === null) return close(true, false);   // reklam yok → hak yine de verilir
+        close(r, true);
+      });
+    };
+    $('adCancel').onclick = () => close(false, false);
+  },
+  // Geçiş reklamı hazır değilse sessizce atlanır.
+  interstitial(done) {
+    NativeAds.show('interstitial').then(r => { if (r) { adState.lastAt = Date.now(); track('ad_interstitial'); } done(); });
+  },
+};
+
+// Geçiş reklamı yalnızca buradan çağrılır: kazandıktan sonra "Sonraki seviye"ye basınca.
+function maybeInterstitial(then) {
+  const due = levelIdx + 1 > AD_RULES.FREE_LEVELS
+    && adState.attempts >= AD_RULES.EVERY_ATTEMPTS
+    && (Date.now() - adState.lastAt) / 1000 >= AD_RULES.MIN_GAP_SEC;
+  if (!due) return then();
+  adState.attempts = 0;
+  if (adState.skipNext) { adState.skipNext = false; return then(); }  // ödüllü izlendi → bu sefer atla
+  Ads.interstitial(then);
+}
+
+// Aynı seviyede üst üste kayıplar → isteğe bağlı yardım (ödüllü reklam)
+function onLoss() {
+  if (attemptLost) return;
+  attemptLost = true;
+  if (isDaily()) { track('daily_lose', { day: daily.d, moves: movesUsed }); return; }   // günlükte yardım reklamı yok
+  track(isClassic() ? 'classic_end' : 'level_lose', isClassic() ? { score } : { level: levelIdx + 1, moves: movesUsed });
+  lossStreak++;
+  if (lossStreak < AD_RULES.HELP_AFTER_LOSSES) return;
+  // bedava hakkı varsa gösterme (seri sürer; haklar bitince sonraki kayıpta çıkar)
+  const freeHelp = undos > 0 || (!outOfMoves() && swaps > 0);
+  if (freeHelp) return;
+  lossStreak = 0;
+  setTimeout(() => {
+    if (state !== 'lost' || blocked()) return;
+    const m = $('helpAd');
+    $('helpAdMsg').textContent = t('help.msg', { n: AD_RULES.HELP_AFTER_LOSSES });
+    $('helpSwap').style.display = outOfMoves() ? 'none' : '';
+    const close = () => m.classList.remove('show');
+    $('helpNo').onclick = close;
+    $('helpUndo').onclick = () => { close(); Ads.rewarded(t('ad.rewardUndo'), ok => { if (ok) grantPower('undo'); }); };
+    $('helpSwap').onclick = () => { close(); Ads.rewarded(t('ad.rewardSwap'), ok => { if (ok) grantPower('swap'); }); };
+    m.classList.add('show');
+  }, 900);
+}
+
+// --- puan isteği ---
+// Apple/Google'ın kendi "puanla" penceresi. Yalnız mutlu anda (boss ilk kez yenilince, klasikte 2048)
+// ve en sık 60 günde bir. Sistem de kendi sınırını uygular (iOS: yılda en fazla 3); çıkması garanti değil.
+// Android'de yalnız Play'den kurulan sürümde görünür.
+function maybeAskReview() {
+  const RV = Native && Native.InAppReview;
+  if (!RV) return;
+  if (Date.now() - store.int('neg2048-review-at', 0) < 60 * 864e5) return;
+  store.set('neg2048-review-at', Date.now());
+  track('review_prompt');
+  setTimeout(() => { if (!document.querySelector('.modal.show')) RV.requestReview().catch(() => {}); }, 1800);
+}
+
+// --- oyun akışı ---
+function flush() {
+  clearTimeout(pendingTimer);
+  if (pending) { const p = pending; pending = null; p(); }
+}
+
+function startLevel(i) {
+  flush();
+  exitSwap(true);
+  if (mode !== 'levels') { lossStreak = 0; setMode('levels'); }
+  levelsSaved = null;
+  if (i !== levelIdx) lossStreak = 0;            // seri yalnızca aynı seviyede sayılır
+  attemptLost = false;
+  adState.attempts = adState.attempts + 1;       // her başlatma bir deneme (tekrar dahil)
+  levelIdx = i;
+  store.set('neg2048-level', i);
+  best = store.int(bestKey(i), 0);
+  score = 0;
+  movesUsed = 0;
+  state = 'playing';
+  history = [];
+  board = newBoard(LEVELS[i]);
+  renderAll('pop');
+  updateHUD();
+  levelIntroCards(i);
+  track('level_start', { level: i + 1 });
+}
+const nextLevel = () => maybeInterstitial(() => startLevel(levelIdx + 1));
+
+// --- günlük bulmaca ---
+function startDaily() {
+  const d = dayNumber();
+  const next = dailyFor(d);
+  if (!next) return startLevel(levelIdx);               // liste bitti (bot/daily.js ile uzat)
+  flush();
+  exitSwap(true);
+  daily = next;
+  setMode('daily');
+  attemptLost = false;
+  score = 0; movesUsed = 0; state = 'playing'; history = [];
+  best = store.int(curBestKey(), 0);
+  board = newBoard(daily.level, mulberry32(daily.seed));
+  renderAll('pop');
+  updateHUD();
+  showCard('daily', t('card.daily.title'), `<ul>${t('card.daily.body')}</ul>`);
+  track('daily_start', { day: d });
+}
+function dailyWin() {
+  const d = daily.d;
+  lastStars = starsFor(daily.level, movesUsed);
+  const done = store.int('neg2048-daily-done', 0);
+  lastReward = null;
+  if (done !== d) {                                      // bugün ilk kez çözüldü: seri + 1 geri al
+    store.set('neg2048-daily-streak', done === d - 1 ? store.int('neg2048-daily-streak', 0) + 1 : 1);
+    store.set('neg2048-daily-done', d);
+    undos++; store.set('neg2048-undos', undos);
+    lastReward = { undo: 1, swap: 0 };
+  }
+  const bestMoves = store.int('neg2048-daily-moves-' + d, 0);
+  if (!bestMoves || movesUsed < bestMoves) {
+    store.set('neg2048-daily-moves-' + d, movesUsed);
+    store.set('neg2048-daily-stars-' + d, lastStars);
+  }
+  track('daily_win', { day: d, moves: movesUsed, stars: lastStars });
+}
+// Wordle tarzı paylaşım: en iyi sonuç + seri + bağlantı
+async function shareDaily(btn) {
+  const d = daily.d;
+  const text = t('daily.shareText', {
+    n: d, stars: '⭐'.repeat(store.int('neg2048-daily-stars-' + d, lastStars)),
+    moves: store.int('neg2048-daily-moves-' + d, movesUsed), streak: dailyStreak(),
+  }) + '\n' + SITE;
+  track('daily_share', { day: d });
+  try {
+    if (Native && Native.Share) return void await Native.Share.share({ text });
+    if (navigator.share) return void await navigator.share({ text });
+  } catch (e) { return; }                                // kullanıcı vazgeçti
+  try { await navigator.clipboard.writeText(text); btn.textContent = t('daily.copied'); } catch (e) {}
+}
+
+// --- klasik mod ---
+function setMode(m) { mode = m; store.set('neg2048-mode', m); }
+
+function startClassic() {
+  flush();
+  exitSwap(true);
+  attemptLost = false;
+  board = emptyBoard();
+  spawn(board); spawn(board);
+  score = 0; movesUsed = 0; keepPlaying = false;
+  state = 'playing';
+  history = [];
+  best = store.int(curBestKey(), 0);
+  saveClassic();
+  renderAll('pop');
+  updateHUD();
+}
+// Biten bir oyundan sonra "Yeni oyun": klasik moddaki tek geçiş reklamı noktası
+function newClassicAfterGame() {
+  const games = store.int('neg2048-classic-games', 0) + 1;
+  const due = games >= AD_RULES.CLASSIC_EVERY_GAMES
+    && (Date.now() - adState.lastAt) / 1000 >= AD_RULES.MIN_GAP_SEC;
+  if (!due) { store.set('neg2048-classic-games', games); return startClassic(); }
+  store.set('neg2048-classic-games', 0);
+  if (adState.skipNext) { adState.skipNext = false; return startClassic(); }  // ödüllü izlendi → atla
+  Ads.interstitial(startClassic);
+}
+function saveClassic() {
+  if (!isClassic()) return;
+  store.set('neg2048-classic', JSON.stringify({ vals: valuesOf(board), score, movesUsed, keepPlaying }));
+}
+function loadClassic() {
+  let g = null;
+  try { g = JSON.parse(store.get('neg2048-classic', 'null')); } catch (e) {}
+  if (!g || !g.vals) return startClassic();
+  flush();
+  exitSwap(true);
+  board = fromValues(g.vals);
+  score = g.score || 0; movesUsed = g.movesUsed || 0; keepPlaying = !!g.keepPlaying;
+  history = [];
+  best = store.int(curBestKey(), 0);
+  state = canMove(board) ? 'playing' : 'lost';
+  attemptLost = state === 'lost';
+  renderAll('pop');
+  updateHUD();
+}
+
+function switchMode(m) {
+  if (m === mode || blocked()) return;
+  flush();
+  exitSwap(true);
+  lossStreak = 0;
+  if (mode === 'levels') levelsSaved = { vals: valuesOf(board), score, movesUsed, history, state, attemptLost, levelIdx };
+  if (mode === 'classic') saveClassic();
+  if (m === 'classic') { setMode('classic'); loadClassic(); }
+  else if (m === 'daily') startDaily();
+  else {
+    setMode('levels');
+    const s = levelsSaved;
+    if (s && s.levelIdx === levelIdx) {
+      board = fromValues(s.vals);
+      ({ score, movesUsed, history, state, attemptLost } = s);
+      best = store.int(curBestKey(), 0);
+      renderAll('pop');
+      updateHUD();
+    } else startLevel(levelIdx);
+  }
+}
+document.querySelectorAll('#modeSeg button').forEach(b => b.addEventListener('click', () => switchMode(b.dataset.mode)));
+
+const blocked = () => $('levels').classList.contains('show') || document.querySelector('.modal.show');
+
+function play(dir) {
+  if (state !== 'playing' || swapMode || blocked()) return;
+  flush();
+  const res = move(board, dir);
+  if (!res.moved) return;
+
+  history.push({ vals: valuesOf(board), score, movesUsed });
+  if (history.length > HISTORY_MAX) history.shift();
+  movesUsed++;
+
+  // 1) kaydır
+  const dying = [];
+  for (const a of res.anims) {
+    const el = tileEls.get(a.id);
+    if (!el) continue;
+    setPos(el, a.r, a.c);
+    if (a.die) {
+      tileEls.delete(a.id);
+      el.classList.add('dying');
+      if (a.die === 'vanish') {
+        el.classList.add('vanish');
+        setTimeout(() => el.remove(), 400);
+      } else dying.push(el);
+    }
+  }
+  for (const [r, c] of res.bursts) {
+    const b = document.createElement('div');
+    b.className = 'burst'; setPos(b, r, c);
+    boardEl.insertBefore(b, overEl);
+    setTimeout(() => b.remove(), 600);
+  }
+  if (res.annihilated) Fx.annihilate();
+  else if (res.born.length) Fx.merge(Math.max(...res.born.map(b => b.tile.v)));
+  else Fx.slide();
+
+  board = res.board;
+  score += res.gained;
+  if (score > best) { best = score; store.set(curBestKey(), best); }
+  showGain(res.gained);
+
+  let spawned = null;
+  if (isClassic()) {
+    spawned = spawn(board);
+    if (!keepPlaying && board.flat().some(t => t && t.v >= CLASSIC_GOAL)) { state = 'won'; maybeAskReview(); }
+    else if (!canMove(board)) { state = 'lost'; onLoss(); }
+  } else if (isDaily() && negativesOf(board).length === 0) {
+    state = 'won';
+    dailyWin();
+  } else if (negativesOf(board).length === 0) {
+    state = 'won';
+    lossStreak = 0;
+    store.set(doneKey(levelIdx), '1');
+    lastStars = starsFor(LEVELS[levelIdx], movesUsed);
+    lastReward = null;
+    if (isBoss(levelIdx) && store.get(rewardKey(levelIdx), '') !== '1') {
+      lastReward = BOSS_REWARD;
+      undos += BOSS_REWARD.undo; swaps += BOSS_REWARD.swap;
+      store.set('neg2048-undos', undos); store.set('neg2048-swaps', swaps);
+      store.set(rewardKey(levelIdx), '1');
+      maybeAskReview();                          // mutlu an: bir boss ilk kez yenildi
+    }
+    if (lastStars > store.int(starKey(levelIdx), 0)) store.set(starKey(levelIdx), lastStars);
+    track('level_win', { level: levelIdx + 1, moves: movesUsed, stars: lastStars });
+  } else {
+    spawned = spawn(board, spawnRng());
+    if (!canMove(board) || outOfMoves()) { state = 'lost'; onLoss(); }
+  }
+
+  // 2) kayma bitince: birleşenleri değiştir, yeni taşı çıkar, katmanı aç
+  pending = () => {
+    dying.forEach(el => el.remove());
+    readySet = new Set(negativesOf(board));
+    res.born.forEach(b => addTile(b.tile, b.r, b.c, 'bump'));
+    if (spawned) addTile(spawned.tile, spawned.r, spawned.c, 'pop');
+    refreshReady();
+    updateHUD();
+    saveClassic();
+    if (state === 'won') {
+      if (isClassic()) Fx.win();
+      else { Fx.win(); for (let k = 0; k < lastStars; k++) setTimeout(() => Fx.star(k), 420 + k * 180); }
+    } else if (state === 'lost') Fx.lose();
+  };
+  pendingTimer = setTimeout(flush, 115);
+}
+
+// --- geri al ---
+function doUndo() {
+  flush();
+  exitSwap(true);
+  const h = history.pop();
+  if (!h) return;
+  board = fromValues(h.vals);
+  score = h.score;
+  movesUsed = h.movesUsed;
+  state = 'playing';
+  Fx.undo();
+  renderAll();
+  updateHUD();
+  saveClassic();
+}
+function undo() {
+  if (!history.length || state === 'won' || swapMode) return;
+  if (undos > 0) {
+    undos--; store.set('neg2048-undos', undos);
+    doUndo();
+  } else {
+    if (!isDaily()) Ads.rewarded(t('ad.rewardUndo'), ok => { if (ok) grantPower('undo'); });
+  }
+}
+
+// --- taş değiştirme ---
+function toggleSwap() {
+  if (swapMode) return exitSwap();
+  if (state === 'won' || outOfMoves() || countTiles() < 2 || blocked()) return;
+  flush();
+  if (swaps > 0) enterSwap();
+  else if (!isDaily()) Ads.rewarded(t('ad.rewardSwap'), ok => { if (ok) grantPower('swap'); });
+}
+// Ödüllü reklamdan sonra 1 hak eklenir; oyuncu düğmeye basıp kendisi kullanır (otomatik kullanılmaz).
+function grantPower(kind) {
+  if (kind === 'undo') { undos++; store.set('neg2048-undos', undos); }
+  else { swaps++; store.set('neg2048-swaps', swaps); }
+  updateHUD();
+}
+function enterSwap() {
+  swapMode = true; swapFirst = null;
+  boardEl.classList.add('swap-mode');
+  updateHUD();
+}
+function exitSwap(silent) {
+  if (!swapMode) return;
+  swapMode = false; swapFirst = null;
+  boardEl.classList.remove('swap-mode');
+  boardEl.querySelectorAll('.tile.selected').forEach(n => n.classList.remove('selected'));
+  if (!silent) updateHUD();
+}
+const elAt = (r, c) => board[r][c] && tileEls.get(board[r][c].id);
+
+function pickCell(r, c) {
+  if (!board[r][c]) return;                       // boş hücre seçilmez
+  if (!swapFirst) {
+    swapFirst = [r, c];
+    elAt(r, c).classList.add('selected');
+    return updateHUD();
+  }
+  const [r1, c1] = swapFirst;
+  if (r1 === r && c1 === c) {                     // aynı taş: seçimi kaldır
+    elAt(r, c).classList.remove('selected');
+    swapFirst = null;
+    return updateHUD();
+  }
+  history.push({ vals: valuesOf(board), score, movesUsed });
+  if (history.length > HISTORY_MAX) history.shift();
+  const a = elAt(r1, c1), b = elAt(r, c);
+  swapTiles(board, [r1, c1], [r, c]);
+  for (const [el, rr, cc] of [[a, r, c], [b, r1, c1]]) {
+    el.classList.add('swapping');
+    setPos(el, rr, cc);
+    setTimeout(() => el.classList.remove('swapping'), 260);
+  }
+  swaps--; store.set('neg2048-swaps', swaps);
+  Fx.swap();
+  exitSwap(true);
+  if (state === 'lost' && canMove(board)) state = 'playing';  // değiştirme oyunu kurtardı
+  updateHUD();
+  saveClassic();
+}
+
+function cellFromPoint(x, y) {
+  const rect = boardEl.getBoundingClientRect();
+  const k = rect.width / boardEl.offsetWidth;                 // iPad büyütmesi (scale)
+  const gap = (parseFloat(getComputedStyle(boardEl).getPropertyValue('--gap')) || 10) * k;
+  const ts = (rect.width - 5 * gap) / 4;
+  const c = Math.floor((x - rect.left - gap / 2) / (ts + gap));
+  const r = Math.floor((y - rect.top - gap / 2) / (ts + gap));
+  return r >= 0 && r < SIZE && c >= 0 && c < SIZE ? [r, c] : null;
+}
+
+// --- giriş ---
+const keys = {
+  ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down',
+  a: 'left', d: 'right', w: 'up', s: 'down'
+};
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { exitSwap(); return; }
+  if ((e.metaKey || e.ctrlKey) && e.key === 'z') { e.preventDefault(); undo(); return; }
+  const dir = keys[e.key];
+  if (dir) { e.preventDefault(); play(dir); }
+});
+
+let start = null;
+document.addEventListener('pointerdown', e => {
+  if (e.target.closest('button, .modal, #levels')) return;
+  start = { x: e.clientX, y: e.clientY };
+});
+document.addEventListener('pointerup', e => {
+  if (!start) return;
+  const dx = e.clientX - start.x, dy = e.clientY - start.y;
+  start = null;
+  const dist = Math.max(Math.abs(dx), Math.abs(dy));
+  if (swapMode) {
+    if (dist < 12) { const cell = cellFromPoint(e.clientX, e.clientY); if (cell) pickCell(...cell); }
+    return;
+  }
+  if (dist < 22) return;
+  if (Math.abs(dx) > Math.abs(dy)) play(dx > 0 ? 'right' : 'left');
+  else play(dy > 0 ? 'down' : 'up');
+});
+document.addEventListener('pointercancel', () => (start = null));
+document.addEventListener('touchmove', e => {
+  if (!e.target.closest('#levelGrid')) e.preventDefault();
+}, { passive: false });
+
+$('undoBtn').addEventListener('click', undo);
+$('swapBtn').addEventListener('click', toggleSwap);
+$('newBtn').addEventListener('click', () => {
+  if (!isClassic()) return startLevel(levelIdx);
+  if (state === 'playing' && movesUsed > 30 && !confirm(t('confirm.newClassic'))) return;
+  startClassic();
+});
+
+// iPad'de telefon düzenini ekrana oranlı büyüt; telefonlarda 1 kalır.
+function fitScale() {
+  const k = Math.min(innerWidth / 520, innerHeight / 900);
+  document.documentElement.style.setProperty('--k', k >= 1.15 ? Math.min(k, 1.5).toFixed(3) : '1');
+}
+addEventListener('resize', fitScale);
+fitScale();
+
+restoreFromBackup();
+applyStatic();
+if (Native && Native.App) Native.App.getInfo().then(i => { VERSION = i.version; applyStatic(); }).catch(() => {});
+buildCells();
+if (isClassic()) loadClassic(); else startLevel(levelIdx);
+// Uygulamada: izin + reklamlar, ilk çizimden sonra (açılışı yavaşlatmasın)
+if (Native) setTimeout(() => NativeAds.init(), 1200);
+setTimeout(() => Fx.create(), 300);
+</script>
+</body>
+</html>
