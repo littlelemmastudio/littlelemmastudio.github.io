@@ -11,7 +11,6 @@ copy() { # $1 kaynak www, $2 hedef ad
 }
 copy "$P/eksi2048/www" eksi2048
 copy "$P/birim-top/www" orbitwise
-copy "$P/hedef/www" hedef
 copy "$P/hedefivur/www" hedefivur
 copy "$P/katlama/www" foldandcut
 copy "$P/permutation/www" uretec
