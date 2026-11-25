@@ -689,7 +689,7 @@ function renderLangList() {
 // Seviye, bir öncekini çözünce açılır; bölüm, önceki bölümün bütün seviyeleri çözülünce. ?unlock her şeyi açar.
 // =====================================================================
 let CH = [];
-const UNLOCK_ALL = new URLSearchParams(location.search).has('unlock');
+const UNLOCK_ALL = true; // /oyna/ kopyası
 const Prog = {
   all: (() => { try { return JSON.parse(store.get('prog', '{}')) || {}; } catch (e) { return {}; } })(),
   of(id) { return this.all[id] || null; },

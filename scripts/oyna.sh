@@ -17,5 +17,10 @@ copy "$P/katlama/www" foldandcut
 copy "$P/permutation/www" uretec
 cp "$P/hedefivur/assets/icon.svg" oyna/hedefivur/oyna-icon.svg
 cp "$P/katlama/assets/icon.svg" oyna/foldandcut/oyna-icon.svg
+# Bütün seviyeler açık (yalnız bu kopyalarda; oyunların kendi kodu değişmez)
+for g in foldandcut uretec; do
+  sed -i '' 's#^const UNLOCK_ALL = .*#const UNLOCK_ALL = true; // /oyna/ kopyası#' "oyna/$g/index.html"
+  grep -q "UNLOCK_ALL = true; // /oyna/" "oyna/$g/index.html" || { echo "UNLOCK_ALL bulunamadı: $g"; exit 1; }
+done
 find oyna -name '.DS_Store' -delete
 du -sh oyna/*

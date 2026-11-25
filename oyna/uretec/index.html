@@ -360,7 +360,7 @@ let anim = null;          // süren animasyon { raf, finish }
 // Çözülemez ("İmkânsız") seviyeler adım 4'e kadar oynanamaz ve geçilmiş sayılır.
 // ?unlock ile her şey açık (geliştirme).
 // =====================================================================
-const UNLOCK_ALL = new URLSearchParams(location.search).has('unlock');
+const UNLOCK_ALL = true; // /oyna/ kopyası
 const Prog = {
   all: (() => { try { return JSON.parse(store.get('prog', '{}')) || {}; } catch (e) { return {}; } })(),
   of(id) { return this.all[id] || null; },
