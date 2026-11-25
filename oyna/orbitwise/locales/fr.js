@@ -4,6 +4,7 @@ window.LOCALES.fr = {
   name: 'Français',
   strings: {
     'app.name': 'Orbitwise',
+    'tut.diag': 'Dans un champ carré, tu peux aussi sauter <b>en diagonale</b> : l’anneau montre la case du coin. Touche-la.',
     'daily.waiting': 'Le défi du jour t’attend →',
     'hint.granted': '+1 indice ! Touche Indice pour l’utiliser.',
     'atlas.title': 'Atlas des planètes',

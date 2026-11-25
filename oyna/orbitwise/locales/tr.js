@@ -4,6 +4,7 @@ window.LOCALES.tr = {
   name: 'Türkçe',
   strings: {
     'app.name': 'Orbitwise',
+    'tut.diag': 'Kare alanda <b>çapraz</b> da zıplayabilirsin: halka köşedeki kareyi gösteriyor. Ona dokun.',
     'daily.waiting': 'Günün bulmacası seni bekliyor →',
     'hint.granted': '+1 ipucu! Kullanmak için İpucu\'ya bas.',
     'atlas.title': 'Gezegen Atlası',

@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="tr">
 <head>
+<!-- Copyright (c) 2026 Taha Emre Kurt (Little Lemma). All rights reserved. Not licensed for reuse. -->
 <meta name="robots" content="noindex, nofollow">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
@@ -172,6 +173,20 @@ button { font: inherit; color: inherit; border: 0; background: none; cursor: poi
   pointer-events: none; transition: opacity .2s, transform .2s; z-index: 40; font-size: 15.5px; line-height: 1.4; font-style: italic; }
 #toast.show { opacity: 1; transform: translate(-50%, 0); }
 
+/* kâğıtlar: haritanın altındaki satır ve seçim penceresi */
+.papers-row { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; padding: 12px 2px; border-top: var(--rule) solid var(--ink); margin-top: 4px; }
+.papers-row canvas { width: 52px; height: 52px; flex: none; }
+.papers-row .txt { flex: 1; }
+.papers-row .txt b { display: block; font-size: 19px; }
+.papers-row .txt span { color: var(--muted); font-size: 14px; font-style: italic; }
+.papers-row .end { width: 22px; height: 22px; color: var(--muted); }
+.skin-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 12px 0 14px; }
+.skin { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 4px; border: 1.5px solid transparent; font-size: 14px; line-height: 1.2; text-align: center; }
+.skin canvas { width: 100%; max-width: 92px; aspect-ratio: 1; }
+.skin.on { border-color: var(--accent); }
+.skin.locked canvas { opacity: .3; }
+.skin small { color: var(--muted); font-style: italic; }
+
 /* ================= AYARLAR, DİL, NASIL OYNANIR (Köşeler'den) ================= */
 .rows { border-top: var(--rule) solid var(--ink); border-bottom: 1px solid var(--line); margin: 12px 0 14px; }
 :root[data-theme="dark"] .rows { border-top-color: var(--line); }
@@ -219,6 +234,8 @@ button { font: inherit; color: inherit; border: 0; background: none; cursor: poi
     <button class="icon-btn" id="settingsBtn" data-i18n-aria="settings.title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
   </div>
   <div class="chapters" id="chapters"></div>
+  <button class="papers-row" id="papersBtn"><canvas id="papersCv"></canvas><span class="txt"><b data-i18n="papers.title"></b><span id="papersSub"></span></span>
+    <svg class="end" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
 </div></div>
 
 <!-- ================= SEVİYELER ================= -->
@@ -267,6 +284,14 @@ button { font: inherit; color: inherit; border: 0; background: none; cursor: poi
   <div class="res-line" id="resLine"></div>
   <button class="primary" id="resNext"></button>
   <button class="secondary" id="resRetry"></button>
+</div></div>
+
+<!-- kâğıt seçimi: yıldız topladıkça yeni kâğıtlar açılır -->
+<div class="modal" id="papersModal"><div class="sheet">
+  <h3 data-i18n="papers.title"></h3>
+  <p class="res-sub" data-i18n="papers.sub"></p>
+  <div class="skin-grid" id="skinGrid"></div>
+  <button class="secondary" data-close data-i18n="close"></button>
 </div></div>
 
 <!-- ödüllü reklam onayı: önce ne kazanılacağı söylenir, sonra video -->
@@ -423,7 +448,7 @@ const Theme = {
     $('themeColor').content = dark ? '#0b111f' : '#f3eee2';
     if (Native && Native.StatusBar) Native.StatusBar.setStyle({ style: dark ? 'DARK' : 'LIGHT' }).catch(() => {});
     document.querySelectorAll('#themeSeg button').forEach(b => b.classList.toggle('on', b.dataset.themeOpt === this.pref));
-    if (typeof readColors === 'function' && C) { readColors(); if (G.lv) { drawTarget(); render(); } }
+    if (typeof readColors === 'function' && C) { readColors(); if (G.lv) { drawTarget(); render(); } if (CH.length) renderPapersRow(); }
   },
 };
 
@@ -689,7 +714,7 @@ function renderLangList() {
 // Seviye, bir öncekini çözünce açılır; bölüm, önceki bölümün bütün seviyeleri çözülünce. ?unlock her şeyi açar.
 // =====================================================================
 let CH = [];
-const UNLOCK_ALL = true; // /oyna/ kopyası
+let UNLOCK_ALL = true; // /oyna/ kopyası
 const Prog = {
   all: (() => { try { return JSON.parse(store.get('prog', '{}')) || {}; } catch (e) { return {}; } })(),
   of(id) { return this.all[id] || null; },
@@ -737,6 +762,7 @@ function renderMap() {
     box.appendChild(b);
   });
   $('mapTot').innerHTML = `★ <b>${st}</b>/${mx}`;
+  renderPapersRow();
 }
 let cur = { c: 0, i: 0 };
 function openChapter(c) { cur.c = c; renderLevels(); show('levels'); }
@@ -878,6 +904,104 @@ const s2w = e => {
 };
 
 // =====================================================================
+// KÂĞITLAR: yalnız görünüş, bulmacaya dokunmaz. Yıldız topladıkça açılır (toplam yıldız ≥ stars).
+// Desen kâğıdın kendi koordinatlarında (0..8) çizilir, yani kâğıtla birlikte katlanır. Tek yüzü renkli kâğıtlarda (el işi,
+// origami) arka yüz beyazdır: katlayınca ters dönen kat beyaz görünür (ters mi: dönüşümün determinantı < 0).
+// =====================================================================
+const dark = () => document.documentElement.dataset.theme === 'dark';
+// basit, tekrarlanabilir sözde rastgele (desenler her karede aynı kalsın)
+const prand = i => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+const SKINS = [
+  { id: 'plain', stars: 0 },
+  { id: 'grid', stars: 8, pattern(c, u, back) {
+      if (back) return;
+      c.strokeStyle = dark() ? 'rgba(140,180,240,.2)' : 'rgba(50,100,190,.2)'; c.lineWidth = u;
+      c.beginPath();
+      for (let k = 0.5; k < 8; k += 0.5) { c.moveTo(k, 0); c.lineTo(k, 8); c.moveTo(0, k); c.lineTo(8, k); }
+      c.stroke();
+    } },
+  { id: 'craft', stars: 18, fill: () => (dark() ? '#7a5d1c' : '#f3c64f') },
+  { id: 'news', stars: 30, fill: () => (dark() ? '#262c38' : '#e9e5dc'), both: true, pattern(c, u) {
+      // dört sütun yazı satırı: soluk çizgiler, satır sonları rastgele kısa
+      c.strokeStyle = dark() ? 'rgba(230,220,200,.16)' : 'rgba(40,36,30,.2)'; c.lineWidth = 2.2 * u; c.lineCap = 'butt';
+      c.beginPath();
+      let i = 0;
+      for (let col = 0; col < 4; col++) for (let y = 0.4; y < 7.8; y += 0.24) {
+        const x0 = 0.25 + col * 1.95, w = prand(++i) < 0.12 ? 0.6 + prand(i + 99) : 1.7;
+        c.moveTo(x0, y); c.lineTo(x0 + w, y);
+      }
+      c.stroke();
+    } },
+  { id: 'kraft', stars: 45, fill: () => (dark() ? '#4f3b25' : '#c9a273'), both: true, pattern(c, u) {
+      // lifler: kısa, eğik, soluk çizgiler
+      c.strokeStyle = dark() ? 'rgba(255,230,190,.1)' : 'rgba(90,60,25,.16)'; c.lineWidth = u;
+      c.beginPath();
+      for (let i = 0; i < 260; i++) {
+        const x = prand(i) * 8, y = prand(i + 500) * 8, a = prand(i + 900) * Math.PI, L = 0.15 + prand(i + 1300) * 0.3;
+        c.moveTo(x, y); c.lineTo(x + Math.cos(a) * L, y + Math.sin(a) * L);
+      }
+      c.stroke();
+    } },
+  { id: 'washi', stars: 60, fill: () => (dark() ? '#4a2335' : '#f4d9dd'), pattern(c, u, back) {
+      if (back) return;
+      // dalga deseni: üst üste yarım halkalar
+      c.strokeStyle = dark() ? 'rgba(255,190,205,.22)' : 'rgba(170,50,70,.22)'; c.lineWidth = 1.2 * u;
+      c.beginPath();
+      for (let row = 0; row <= 17; row++) for (let col = -1; col <= 9; col++) {
+        const cx = col + (row % 2 ? 0.5 : 0), cy = row * 0.5;
+        for (const r of [0.45, 0.3, 0.15]) { c.moveTo(cx + r, cy); c.arc(cx, cy, r, 0, Math.PI, true); }
+      }
+      c.stroke();
+    } },
+];
+const totalStars = () => Object.values(Prog.all).reduce((a, p) => a + p.s, 0);
+const skinOpen = sk => UNLOCK_ALL || totalStars() >= sk.stars;
+function skinNow() {
+  const sk = SKINS.find(k => k.id === store.get('skin', 'plain'));
+  return sk && skinOpen(sk) ? sk : SKINS[0];
+}
+// yüzün dolgu rengi: tek yüzü renkli kâğıtta arka yüz düz kâğıt
+const skinFill = (sk, back) => (sk.fill && (!back || sk.both) ? sk.fill() : C.paper);
+const isBack = M => M[0] * M[4] - M[1] * M[3] < 0;
+// küçük örnek: kâğıt + sağ üst köşesi katlanmış (arka yüz görünsün)
+function drawSwatch(cv, sk) {
+  const r = window.devicePixelRatio || 1, W = Math.round((cv.clientWidth || 80) * r);
+  cv.width = cv.height = W;
+  const c = cv.getContext('2d'), k = W / 9.2, u = 1 / k;
+  c.setTransform(k, 0, 0, k, 0.6 * k, 0.6 * k);
+  const sheet = [[0, 0], [5, 0], [8, 3], [8, 8], [0, 8]], flap = [[5, 0], [5, 3], [8, 3]];
+  c.save(); c.shadowColor = C.shadow; c.shadowBlur = 6 * r; c.shadowOffsetY = 1.5 * r;
+  pathPolys(c, [sheet]); c.fillStyle = skinFill(sk, false); c.fill(); c.restore();
+  c.save(); pathPolys(c, [sheet]); c.clip(); if (sk.pattern) sk.pattern(c, u, false); c.restore();
+  pathPolys(c, [flap]); c.fillStyle = skinFill(sk, true); c.fill();
+  c.save(); pathPolys(c, [flap]); c.clip(); if (sk.pattern && sk.both) sk.pattern(c, u, true); c.restore();
+  c.fillStyle = rgba(C.ink, 0.09); pathPolys(c, [flap]); c.fill();
+  c.lineJoin = 'round'; c.strokeStyle = rgba(C.ink, 0.55); c.lineWidth = 1.4 * u;
+  pathPolys(c, [sheet]); c.stroke(); pathPolys(c, [flap]); c.stroke();
+}
+function renderPapersRow() {
+  const open = SKINS.filter(skinOpen).length;
+  $('papersSub').textContent = t('papers.progress', { a: open, b: SKINS.length });
+  drawSwatch($('papersCv'), skinNow());
+}
+function openPapers() {
+  const grid = $('skinGrid'), cur = skinNow(), st = totalStars();
+  grid.innerHTML = '';
+  for (const sk of SKINS) {
+    const open = skinOpen(sk), b = document.createElement('button');
+    b.className = 'skin' + (open ? '' : ' locked') + (sk === cur ? ' on' : '');
+    b.innerHTML = `<canvas></canvas><span>${t('skin.' + sk.id)}</span>` + (open ? '' : `<small>★ ${Math.min(st, sk.stars)}/${sk.stars}</small>`);
+    b.onclick = () => {
+      if (!open) { Fx.nope(); toast(t('papers.locked', { n: sk.stars })); return; }
+      store.set('skin', sk.id); Fx.click(); openPapers(); renderPapersRow();
+    };
+    grid.appendChild(b);
+  }
+  $('papersModal').classList.add('show');
+  grid.querySelectorAll('canvas').forEach((cv, i) => drawSwatch(cv, SKINS[i]));
+}
+
+// =====================================================================
 // ÇİZİM
 // Kâğıt "yaprak" listesi olarak çizilir: { poly (şu anki yer), M (orijinalden şu anki yere dönüşüm), back }.
 // M sayesinde hedef çizgisi kâğıda basılı gibi kâğıtla birlikte katlanır.
@@ -918,15 +1042,19 @@ function drawSheets(items, u, opt = {}) {
   pathPolys(ctx, items.map(i => i.poly)); ctx.fillStyle = C.paper; ctx.fill();
   ctx.restore();
   ctx.lineJoin = 'round';
-  const print = printed() && !opt.noPrint;
+  const print = printed() && !opt.noPrint, sk = skinNow();
   for (const it of items) {
+    const back = it.M ? isBack(it.M) : !!it.back;
     pathPolys(ctx, [it.poly]);
-    ctx.fillStyle = it.fill || C.paper; ctx.fill();
-    ctx.fillStyle = rgba(C.ink, it.back ? 0.09 : 0.04); ctx.fill();
-    if (print && it.M) {
+    ctx.fillStyle = it.fill || skinFill(sk, back); ctx.fill();
+    ctx.fillStyle = rgba(C.ink, back ? 0.09 : 0.04); ctx.fill();
+    if (it.M && ((sk.pattern && !it.fill) || print)) {
       ctx.save(); pathPolys(ctx, [it.poly]); ctx.clip(); applyM(it.M);
-      pathPolys(ctx, G.lv.target); ctx.fillStyle = rgba(it.fill ? C['on-accent'] : C.ink, 0.08); ctx.fill();
-      strokeOutline(rgba(it.fill ? C['on-accent'] : C.ink, 0.85), 1.7 * u);
+      if (sk.pattern && !it.fill && (!back || sk.both)) sk.pattern(ctx, u, back);
+      if (print) {
+        pathPolys(ctx, G.lv.target); ctx.fillStyle = rgba(it.fill ? C['on-accent'] : C.ink, 0.08); ctx.fill();
+        strokeOutline(rgba(it.fill ? C['on-accent'] : C.ink, 0.85), 1.7 * u);
+      }
       ctx.restore();
     }
     pathPolys(ctx, [it.poly]); ctx.strokeStyle = opt.stroke || rgba(C.ink, 0.5); ctx.lineWidth = (opt.lw || 1.2) * u; ctx.stroke();
@@ -1220,8 +1348,11 @@ function doCut(l) {
 function finishCut() {
   const R = G.result;
   if (R.win) {
-    const s = starsFor(G.folds, G.lv.best);
+    const s = starsFor(G.folds, G.lv.best), before = totalStars();
     Prog.save(G.lv.id, s, G.folds);
+    // bu kazanmayla açılan kâğıt varsa sonuç penceresinden sonra haber ver
+    const fresh = SKINS.find(k => k.stars > before && k.stars <= totalStars());
+    if (fresh && !UNLOCK_ALL) setTimeout(() => toast(t('skin.unlocked', { name: t('skin.' + fresh.id) }), 3200), 1400);
     track('level_win', { level: G.lv.id, folds: G.folds, stars: s });
     NativeAds.warm();
     $('targetBox').classList.add('hit');
@@ -1414,6 +1545,7 @@ function syncToggles() { document.querySelectorAll('[data-toggle]').forEach(b =>
 function openExternal(url) { if (Native) location.href = url; else window.open(url, '_blank'); }
 $('settingsBtn').onclick = () => { Fx.click(); syncToggles(); Theme.apply(); openModal('settingsModal'); };
 $('langBtn').onclick = () => { Fx.click(); renderLangList(); openModal('langModal'); };
+$('papersBtn').onclick = () => { Fx.click(); openPapers(); };
 $('howtoBtn').onclick = () => { Fx.click(); openModal('helpModal'); };
 $('supportBtn').onclick = () => openExternal(`${SITE}/support/#${lang}`);
 $('privacyBtn').onclick = () => openExternal(`${SITE}/privacy/#${lang}`);

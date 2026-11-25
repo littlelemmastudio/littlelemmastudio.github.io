@@ -4,6 +4,7 @@ window.LOCALES.en = {
   name: 'English',
   strings: {
     'app.name': 'Orbitwise',
+    'tut.diag': 'In a square field you can jump <b>diagonally</b> too: the ring marks the corner square. Tap it.',
     'daily.waiting': 'Today’s puzzle is waiting →',
     'hint.granted': '+1 hint! Tap Hint to use it.',
     'atlas.title': 'Planet Atlas',

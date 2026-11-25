@@ -22,6 +22,7 @@
 -->
 <html lang="en">
 <head>
+<!-- Copyright (c) 2026 Taha Emre Kurt (Little Lemma). All rights reserved. Not licensed for reuse. -->
 <meta name="robots" content="noindex, nofollow">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -29,9 +30,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Orbitwise</title>
 <!-- Dil dosyaları: yeni dil = locales/xx.js ekle + buraya bir satır -->
-<script src="locales/en.js?v=af1fdf92"></script>
-<script src="locales/tr.js?v=865088bc"></script>
-<script src="locales/fr.js?v=f9fc0c66"></script>
+<script src="locales/en.js?v=86ab6309"></script>
+<script src="locales/tr.js?v=9ca8d76a"></script>
+<script src="locales/fr.js?v=10a00c64"></script>
 <style>
   /* ---------- tema değişkenleri (stüdyo pastel ailesi) ---------- */
   :root {
@@ -151,6 +152,7 @@
   /* çıkmaz: Geri al düğmesi dikkat çeker */
   .btn.nudge { animation: nudge .9s ease-in-out 3; box-shadow: 0 0 0 3px var(--goal); }
   @keyframes nudge { 50% { transform: scale(1.07); } }
+  .tutline { stroke: var(--goal); stroke-width: .06; stroke-dasharray: .12 .1; stroke-linecap: round; opacity: .85; }
   .help { min-height: 38px; text-align: center; font-size: 13.5px; line-height: 1.45; color: var(--muted); font-weight: 650; }
   .help b { color: var(--ink); }
 
@@ -1194,7 +1196,7 @@ const Fx = {
     if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
   },
   tone(freq, dur = 0.09, { type = 'sine', vol = 0.07, delay = 0, to = 0 } = {}) {
-    if (!this.sound || !this.ctx) return;
+    if (!this.sound || !this.ctx || !Number.isFinite(freq) || (to && !Number.isFinite(to))) return;   // geçersiz frekans: sessizce atla (hata fırlatıp oyunu kilitliyordu)
     const t0 = this.ctx.currentTime + delay;
     const o = this.ctx.createOscillator(), g = this.ctx.createGain();
     o.type = type; o.frequency.setValueAtTime(freq, t0);
@@ -1213,7 +1215,8 @@ const Fx = {
   hop(d) { this.tone(260 + d * 40, 0.16, { type: 'sine', vol: 0.05, to: 520 + d * 60 }); this.buzz(6); },
   land() { this.tone(180, 0.07, { type: 'triangle', vol: 0.035, delay: 0.34 }); },
   gravity(n) {
-    const base = { l1: 523, l2: 659, linf: 784 }[n];
+    // her şeklin kendi notası (eskiden yalnız elmas/daire/kare vardı: pembe, elips, kara delik → NaN → oyun donuyordu, 2026-11-25)
+    const base = { l1: 523, l2: 659, linf: 784, ell: 587, lp: 698, bh: 440 }[n] || 600;
     [1, 1.25, 1.5].forEach((m, i) => this.tone(base * m, 0.18, { type: 'sine', vol: 0.04, delay: 0.34 + i * 0.05 }));
     setTimeout(() => this.buzz(18), 340);
   },
@@ -1507,6 +1510,12 @@ function update(anim = true, reshape = false) {
   const tut = !hintKey && !won && tutorial() && solvePath(L, st);
   const mark = hintKey || (tut && tut.length > 1 ? tut[1].via[0].join(',') : null);
   if (mark) { const [x, y] = mark.split(',').map(Number); marks += `<circle class="hintmark" cx="${x + .5}" cy="${y + .5}" r=".4"/>`; }
+  // öğretici: roketten halkaya kesikli çizgi; hamle çaprazsa metin bunu söyler (Furkan: "çapraz gitmeyi anlamadım", 2026-11-25)
+  if (tut && tut.length > 1) {
+    const [x, y] = tut[1].via[0], diag = x !== st.x && y !== st.y;
+    marks = `<line class="tutline" x1="${st.x + .5}" y1="${st.y + .5}" x2="${x + .5}" y2="${y + .5}"/>` + marks;
+    $('text').innerHTML = t(diag ? 'tut.diag' : 'tut.tap');
+  }
   $('tints').innerHTML = tints;
   $('marks').innerHTML = marks;
   // gemi
@@ -1610,20 +1619,24 @@ function tryMove(x, y) {
   $('shipRot').style.transform = `rotate(${L.dark ? 0 : angle}deg)`;
   hopAnim();
   flyVia(from, mv.via, () => {
-    busy = false;
-    if (L.dark) { for (const [vx, vy] of mv.via) illuminate(L, P, { ...st, x: vx, y: vy }, seen); revealFog(); }
-    // tek bir bilgi balonu: norm değişimi > sapan > çekim > kayma
-    let msg = '';
-    if (changed) { Fx.gravity(mv.n); msg = mirror ? t('toast.mirror', { from: shapeName(from.n), to: shapeName(mv.n) }) : t('toast.gravity', { shape: shapeName(mv.n) }); }
-    else if (mv.b) { Fx.gravity(st.n); msg = t('toast.boost'); }
-    else if (mv.pulled) msg = t('toast.pull');
-    else if (mv.slid) msg = t('toast.slide');
-    // çıkmaz: buradan üsse yol yok → söyle ve Geri al'ı öne çıkar (sahip Geri al'ı hiç fark etmemişti)
-    const stuck = !isGoal(st, P) && !solvePath(L, st);
-    if (stuck) { msg = t('toast.noExit'); const u = $('undoBtn'); u.classList.remove('nudge'); void u.offsetWidth; u.classList.add('nudge'); }
-    if (msg) { toast(msg); $('fieldChip').classList.remove('pop'); void $('fieldChip').offsetWidth; $('fieldChip').classList.add('pop'); }
-    if (isGoal(st, P)) { won = true; update(true); celebrate(); return; }
-    update(true, changed || mv.b !== from.b);
+    try {
+      busy = false;
+      if (L.dark) { for (const [vx, vy] of mv.via) illuminate(L, P, { ...st, x: vx, y: vy }, seen); revealFog(); }
+      // tek bir bilgi balonu: norm değişimi > sapan > çekim > kayma
+      let msg = '';
+      if (changed) { Fx.gravity(mv.n); msg = mirror ? t('toast.mirror', { from: shapeName(from.n), to: shapeName(mv.n) }) : t('toast.gravity', { shape: shapeName(mv.n) }); }
+      else if (mv.b) { Fx.gravity(st.n); msg = t('toast.boost'); }
+      else if (mv.pulled) msg = t('toast.pull');
+      else if (mv.slid) msg = t('toast.slide');
+      // çıkmaz: buradan üsse yol yok → söyle ve Geri al'ı öne çıkar (sahip Geri al'ı hiç fark etmemişti)
+      const stuck = !isGoal(st, P) && !solvePath(L, st);
+      if (stuck) { msg = t('toast.noExit'); const u = $('undoBtn'); u.classList.remove('nudge'); void u.offsetWidth; u.classList.add('nudge'); }
+      if (msg) { toast(msg); $('fieldChip').classList.remove('pop'); void $('fieldChip').offsetWidth; $('fieldChip').classList.add('pop'); }
+      if (isGoal(st, P)) { won = true; update(true); celebrate(); return; }
+      update(true, changed || mv.b !== from.b);
+    } catch (e) {   // iniş sonrası bir hata oyunu kilitlemesin: durumu yine çiz (hata Crashlytics'e gider)
+      busy = false; update(true, true); setTimeout(() => { throw e; });
+    }
   });
 }
 

@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="tr">
 <head>
+<!-- Copyright (c) 2026 Taha Emre Kurt (Little Lemma). All rights reserved. Not licensed for reuse. -->
 <meta name="robots" content="noindex, nofollow">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
@@ -360,7 +361,7 @@ let anim = null;          // süren animasyon { raf, finish }
 // Çözülemez ("İmkânsız") seviyeler adım 4'e kadar oynanamaz ve geçilmiş sayılır.
 // ?unlock ile her şey açık (geliştirme).
 // =====================================================================
-const UNLOCK_ALL = true; // /oyna/ kopyası
+let UNLOCK_ALL = true; // /oyna/ kopyası
 const Prog = {
   all: (() => { try { return JSON.parse(store.get('prog', '{}')) || {}; } catch (e) { return {}; } })(),
   of(id) { return this.all[id] || null; },
